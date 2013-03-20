@@ -29,7 +29,8 @@
 #  ================
 #
 #  Blender: Patrick Boelens (helpful tuts!), CoDEmanX (useful bmesh info @ BA forums!),
-#           ni-ko-o-kin ( useful vertex groups info @ BA forums)
+#           ni-ko-o-kin ( useful vertex groups info @ BA forums), 
+#           supergra    ( great tip on how to select loose parts @ BA forums ).
 
 bl_info = {    
     "name"       : "Random Face Material Assigner",
