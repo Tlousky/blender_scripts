@@ -109,7 +109,7 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
 
         bm = bmesh.from_edit_mesh(ob.data)              # Create bmesh object from object mesh
 
-        ## If the user chose to distribute materials based on vertex groups
+        ## Distribute materials based on vertex groups
         if self.assign_method == 'Vertex Group':
             
             vgroups = self.get_verts_and_groups()     # Get vgroups
@@ -142,11 +142,39 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
             else:
                 print( "No vertex groups on this mesh, cannot distribute materials!" )
 
-        ## if the user opted to distribute a rand materials to each face faces
+        ## Distribute a rand material to each face
         elif self.assign_method == 'Face':
             for face in bm.faces:    # Iterate over all of the object's faces
                 face.material_index = random.randint(0, no_of_materials - 1)  # Assign random material to face
+
+        ## Distribute materials by loose parts
+        elif self.assign_method == 'Loose Parts':
+            vert_indices = [ vert.index for vert in bm.verts ]  # Reference all face indices
+
+            for vert in vert_indices:
+                bpy.ops.mesh.select_all(action='DESELECT')  # Deselect all faces
                 
+                bm.verts[vert].select = True
+                
+                # Select all verts linked to this one (on the same island or "loose part")
+                bpy.ops.mesh.select_linked( limit=False )
+                
+                # Go to face selection mode
+                bm.select_mode = {'FACE'}
+                bm.select_flush(True)
+
+                rand_mat_index  = random.randint(0, no_of_materials - 1)  
+            
+                # iterate over all selected (linked) faces and assign material
+                for face in bm.faces:
+                    if face.select:
+                        face.material_index = rand_mat_index  # Assign random material to face
+                    
+                # remove selected vertices from list
+                for vert in bm.verts:
+                    if vert.select:
+                        removed = vert_indices.pop( vert_indices.index(vert.index) )
+        
         ob.data.update()                            # Update the mesh from the bmesh data
         bpy.ops.object.mode_set(mode = 'OBJECT')    # Return to object mode
 
