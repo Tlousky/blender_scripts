@@ -28,7 +28,8 @@
 #  Acknowledgements 
 #  ================
 #
-#  Blender: Patrick Boelens (helpful tuts!), CoDEmanX (useful bmesh info on BA forums!)
+#  Blender: Patrick Boelens (helpful tuts!), CoDEmanX (useful bmesh info @ BA forums!),
+#           ni-ko-o-kin ( useful vertex groups info @ BA forums)
 
 bl_info = {    
     "name"       : "Random Face Material Assigner",
@@ -65,10 +66,12 @@ class random_mat_panel(bpy.types.Panel):
         col2.prop( props, "rand_seed"  )     # Create randomization seed property on column
         col2.label(text="use this field to filter materials by name")
         col2.prop( props, "mat_prefix" )     # And the material prefix property too
+        col2.label(text="Distribute materials according to:")
+        col2.prop( props, "assign_method" )     # And the material prefix property too
 
 class rand_mat_assigner(bpy.types.PropertyGroup):
 
-    def get_verts_and_groups( self, context ):
+    def get_verts_and_groups( self ):
         ob = bpy.context.object
 
         groups = {}
@@ -81,7 +84,7 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
                 groups[str(group.group)].append( v.index )
 
         return groups
-   
+
     def randomize( self, context ):
         """ function name: randomize
             description:   This function assigns a random material to each face on the selected
@@ -107,10 +110,13 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
         bm = bmesh.from_edit_mesh(ob.data)              # Create bmesh object from object mesh
 
         if self.assign_method == 'Vertex Group':
-            vgroups = get_verts_and_groups()
+            
+            vgroups = self.get_verts_and_groups()
             if vgroups and len( vgroups.keys() ) > 0:
-
-                for vgroup in vgroups:
+                print( "passed the vgroup if statement" )
+                
+                for vgroup in list( vgroups.keys() ):
+                    print( "Vgroup: ", vgroup )
                     # get random material index
                     rand_mat_index  = random.randint(0, no_of_materials - 1)  
 
@@ -124,17 +130,16 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
                     
                     # Select all the vertices in the vertex group
                     for vert in vgroups[vgroup]:
-                        bmesh.verts[vert].select_set(True)
+                        bm.verts[vert].select_set(True)
 
                     # Go to face selection mode
-                    bpy.ops.mesh.select_mode(
-                        use_extend=False, 
-                        use_expand=False, 
-                        type='FACE')
+                    bm.select_mode = {'FACE'}
+                    bm.select_flush(True)
                     
                     # iterate over all selected faces and assign vgroup material
                     for face in bm.faces:
                         if face.select:
+                            print( "F: ", face.index ),
                             face.material_index = rand_mat_index  # Assign random material to face
             else:
                 print( "No vertex groups on this mesh, cannot distribute materials!" )
@@ -146,7 +151,7 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
         ob.data.update()                            # Update the mesh from the bmesh data
         bpy.ops.object.mode_set(mode = 'OBJECT')    # Return to object mode
 
-        return {'FINISHED'}
+        return None
 
     rand_seed = bpy.props.IntProperty(      # Randomization seed
         name="rand_seed",
