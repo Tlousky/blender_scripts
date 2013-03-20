@@ -35,13 +35,13 @@
 bl_info = {    
     "name"       : "Random Face Material Assigner",
     "author"     : "Tamir Lousky",
-    "version"    : (1, 0, 0),
-    "blender"    : (2, 65, 0),
+    "version"    : (2, 0, 0),
+    "blender"    : (2, 66, 0),
     "category"   : "Materials",
     "location"   : "3D View >> Tools",
-    "wiki_url"   : "http://blenderartists.org/forum/showthread.php?279723",
-    "tracker_url": "http://blenderartists.org/forum/showthread.php?279723",
-    "description": "Assign random materials to mesh object faces."}
+    "wiki_url"   : "http://bioblog3d.wordpress.com/2013/03/20/random-material-assigner-v2/",
+    "tracker_url": "https://github.com/Tlousky/blender_scripts/blob/master/random_material_assigners/random_material_assigner_per_face_new_features.py",
+    "description": "Assign random materials to mesh faces, vertex groups or loose parts."}
 
 import bpy
 import random
@@ -66,13 +66,18 @@ class random_mat_panel(bpy.types.Panel):
         col2 = box.column(align=True)        # Create a column
         col2.prop( props, "rand_seed"  )     # Create randomization seed property on column
         col2.label(text="use this field to filter materials by name")
-        col2.prop( props, "mat_prefix" )     # And the material prefix property too
+        col2.prop( props, "mat_prefix" )     # Material prefix property too
         col2.label(text="Distribute materials according to:")
-        col2.prop( props, "assign_method" )     # And the material prefix property too
+        col2.prop( props, "assign_method" )  # Material assignment method prop
 
 class rand_mat_assigner(bpy.types.PropertyGroup):
 
     def get_verts_and_groups( self ):
+        """ function name: get_verts_and_groups
+            description:   iterates over all vertex groups, and aggregates
+                           the vertex indices if each vgroup.
+            return value:  dict with this info
+        """
         ob = bpy.context.object
 
         groups = {}
