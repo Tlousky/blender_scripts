@@ -86,7 +86,9 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
             groups[str(group.index)] = []
 
         for v in ob.data.vertices:
+            # iterate over this particular vertex's vgroups
             for group in v.groups:
+                # And add the vert index to the group dictionary and each group's list of verts
                 groups[str(group.group)].append( v.index )
 
         return groups
@@ -155,10 +157,10 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
 
         ## Distribute materials by loose parts
         elif self.assign_method == 'Loose Parts':
-            vert_indices = [ vert.index for vert in bm.verts ]  # Reference all face indices
+            vert_indices = [ vert.index for vert in bm.verts ]  # Reference all vertex indices
 
             for vert in vert_indices:
-                bpy.ops.mesh.select_all(action='DESELECT')  # Deselect all faces
+                bpy.ops.mesh.select_all(action='DESELECT')  # Deselect all verts
                 
                 bm.verts[vert].select = True
                 
