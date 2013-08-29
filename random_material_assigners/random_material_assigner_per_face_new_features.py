@@ -189,21 +189,30 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
         return None
 
     rand_seed = bpy.props.IntProperty(      # Randomization seed
-        name="rand_seed",
-        description="Randomization seed",
-        update=randomize)  
+        name        = "rand_seed",
+        description = "Randomization seed",
+        options     = {'ANIMATABLE'},
+        update      = randomize
+    )  
 
     mat_prefix = bpy.props.StringProperty(  # Prefix to filter materials by
-        name="mat_prefix", 
-        description="Material name filter",
-        default="",
-        update=randomize)
+        name        = "mat_prefix", 
+        description = "Material name filter",
+        default     = "",
+        update      = randomize
+    )
 
-    items = [('Face', 'Face', ''), ('Vertex Group', 'Vertex Group', ''), ('Loose Parts', 'Loose Parts', '')]
+    items = [
+        ('Face', 'Face', ''), 
+        ('Vertex Group', 'Vertex Group', ''), 
+        ('Loose Parts', 'Loose Parts', '')
+    ]
+
     assign_method = bpy.props.EnumProperty( # Material distribution method
-        name="Material distribution method",
-        items=items, 
-        default='Face')
+        name    = "Material distribution method",
+        items   = items, 
+        default = 'Face'
+    )
     
 def register():
     bpy.utils.register_module(__name__)
