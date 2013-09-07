@@ -57,14 +57,14 @@ class render_from_game(bpy.types.Panel):
         col    = layout.column()
 
         col.operator( 
-            'logic.create_anim_logics',
-            text = "Create Animation Logics",
+            'game.create_anim_logics',
+            text = 'Create Animation Logics',
             icon = 'LOGIC'
         )
 
 class create_logics( bpy.types.Operator ):
-    """ Render Animations from Game Engine """
-    bl_idname      = "logic.create_anim_logics"
+    """ Create logic bricks to play animations for all animated objects """
+    bl_idname      = "game.create_anim_logics"
     bl_label       = "Create Animation Logics"
     bl_description = "Automatically create animation logics bricks"
     bl_options     = {'REGISTER', 'UNDO'}
@@ -73,7 +73,7 @@ class create_logics( bpy.types.Operator ):
     def poll( self, context ):
         return context.scene.render.engine == 'BLENDER_GAME'
 
-    def create_logics( self, context ):
+    def execute( self, context ):
         """ Goes over all objects in scene and creates game logic bricks
             to play their animations when the game engine runs """
        
@@ -81,23 +81,24 @@ class create_logics( bpy.types.Operator ):
             emax = 0
             smin = context.scene.frame_end
 
-            if 'action' in dir(o.animation_data):
+            # If object has animations (actions in game engine)
+            if 'action' in dir( o.animation_data ):
                 # Find start and end frames for action animations
                 for fc in o.animation_data.action.fcurves:
                     start,end = fc.range()[:]
-                    if start < smax:
+                    if start < smin:
                         smin = start
                     if end > emax:
                         emax = end
 
-                # Add always sensor which will feed all animations
+                # Add delay sensor to start the animation on time
                 bpy.ops.logic.sensor_add( 
                     type   = 'DELAY', 
                     name   = 'SensAnimation', 
                     object = o.name 
                 )
                 
-                # Make sure always sensor is re-evaluated at each frame
+                # Start animation at the correct frame
                 o.game.sensors[-1].delay = smin
                         
                 # Add logic controller
@@ -113,16 +114,20 @@ class create_logics( bpy.types.Operator ):
                     name   = 'act_' + o.name, 
                     object = o.name
                 )
+
+                # Set action actuator parameters
                 o.game.actuators[-1].action      = o.animation_data.action
                 o.game.actuators[-1].frame_start = smin
                 o.game.actuators[-1].frame_end   = emax
                 
                 # Connect bricks
-                e.game.controllers[-1].link(
+                o.game.controllers[-1].link(
                     sensor   = o.game.sensors[-1], 
                     actuator = o.game.actuators[-1]
                 )
                 
+        return {'FINISHED'}
+
 def register():
     bpy.utils.register_module(__name__)
     
