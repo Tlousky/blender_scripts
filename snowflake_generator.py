@@ -1,7 +1,22 @@
+# Author: Tamir Lousky
+# Updated: 23Jan2014
+
+bl_info = {    
+    "name"        : "Snowflake Generator",
+    "author"      : "Tamir Lousky",
+    "version"     : (0, 0, 1),
+    "blender"     : (2, 69, 0),
+    "category"    : "Add Mesh",
+    "location"    : "View3D > Add > Mesh > Snowflake",
+    "wiki_url"    : "",
+    "tracker_url" : "",
+    "description" : "Generates Koch Snowflakes"
+}
+
 import bpy, json, bmesh
 from mathutils import Vector, Matrix
 from math      import pi, radians, cos, sin, sqrt
-
+       
 def draw_initial_polygon( sides = 6, radius = 1.0 ):
     """ Create initial polygon shape """
 
@@ -165,8 +180,84 @@ def create_snowflake( o, iterations = 2 ):
     # Return to object mode
     bpy.ops.object.mode_set(mode = 'OBJECT')
 
-create_snowflake( 
-    create_mesh_obj( 
-        'snowflake', draw_initial_polygon() 
-    ) 
-)
+class add_snowflake( bpy.types.Operator ):
+    """Add a Koch Snowflake"""
+    bl_idname  = "mesh.add_snowflake"
+    bl_label   = "Add Snowflake"
+    bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+
+    iterations = bpy.props.IntProperty(
+        name        = "Iterations",
+        description = "Number of fractal iterations",
+        min         = 1,
+        max         = 6,
+        default     = 2
+    )
+
+    sides = bpy.props.IntProperty(
+        name        = "Number of sides",
+        description = "The number of sides of the initial polygon",
+        min         = 3,
+        max         = 32,
+        default     = 6
+    )
+    
+    radius = bpy.props.FloatProperty(
+        name        = "Radius",
+        description = "Radius of the snowflake",
+        min         = -100.0,
+        max         = 100.0,
+        unit        = 'LENGTH',
+        default     = 1.0
+    )
+
+    def draw(self, context):
+        layout = self.layout
+        
+        box = layout.box()
+        box.prop( self, 'radius'          )
+        box.prop( self, 'Number of sides' )
+        box.prop( self, 'Iterations'      )
+        
+    def execute(self, context):
+
+        create_snowflake( 
+            create_mesh_obj( 
+                'snowflake', draw_initial_polygon(
+                    sides  = self.sides, 
+                    radius = self.radius
+                ) 
+            ), iterations = self.iterations
+        )
+    
+        return {'FINISHED'}
+        
+class INFO_MT_mesh_snowflake_add( bpy.types.Menu ):
+    ''' Define the "snowflake" menu '''
+    bl_idname = "INFO_MT_mesh_snowflake_add"
+    bl_label  = "Snowflake"
+
+    def draw( self, context ):
+        layout = self.layout
+        layout.operator_context = 'INVOKE_REGION_WIN'
+        layout.operator( 'mesh.add_snowflake', text='Snowflake' )
+        
+# Define "Snowflake" menu
+def menu_func( self, context ):
+    self.layout.menu( "INFO_MT_mesh_snowflake_add", icon="PLUGIN" )
+
+def register():
+    bpy.utils.register_module(__name__)
+
+    # Add "Snowflake" menu to the "Add Mesh" menu
+    bpy.types.INFO_MT_mesh_add.append( menu_func )
+
+
+def unregister():
+    bpy.utils.unregister_module(__name__)
+
+    # Remove "Snowflake" menu from the "Add Mesh" menu.
+    bpy.types.INFO_MT_mesh_add.remove(menu_func)
+
+if __name__ == "__main__":
+    register()
