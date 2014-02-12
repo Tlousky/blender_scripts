@@ -215,9 +215,9 @@ class add_snowflake( bpy.types.Operator ):
         layout = self.layout
         
         box = layout.box()
-        box.prop( self, 'radius'          )
-        box.prop( self, 'Number of sides' )
-        box.prop( self, 'Iterations'      )
+        box.prop( self, 'radius'     )
+        box.prop( self, 'sides'      )
+        box.prop( self, 'iterations' )
         
     def execute(self, context):
 
@@ -242,9 +242,13 @@ class INFO_MT_mesh_snowflake_add( bpy.types.Menu ):
         layout.operator_context = 'INVOKE_REGION_WIN'
         layout.operator( 'mesh.add_snowflake', text='Snowflake' )
         
-# Define "Snowflake" menu
+# Define "Snowflake" operator
 def menu_func( self, context ):
-    self.layout.menu( "INFO_MT_mesh_snowflake_add", icon="PLUGIN" )
+    self.layout.operator( 
+        "mesh.add_snowflake", 
+        text = "Snowflake", 
+        icon = "PLUGIN"
+    )
 
 def register():
     bpy.utils.register_module(__name__)
@@ -252,12 +256,11 @@ def register():
     # Add "Snowflake" menu to the "Add Mesh" menu
     bpy.types.INFO_MT_mesh_add.append( menu_func )
 
-
 def unregister():
     bpy.utils.unregister_module(__name__)
 
     # Remove "Snowflake" menu from the "Add Mesh" menu.
-    bpy.types.INFO_MT_mesh_add.remove(menu_func)
+    bpy.types.INFO_MT_mesh_add.remove( menu_func )
 
 if __name__ == "__main__":
     register()
