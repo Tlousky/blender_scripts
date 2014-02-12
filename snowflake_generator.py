@@ -232,17 +232,7 @@ class add_snowflake( bpy.types.Operator ):
     
         return {'FINISHED'}
         
-class INFO_MT_mesh_snowflake_add( bpy.types.Menu ):
-    ''' Define the "snowflake" menu '''
-    bl_idname = "INFO_MT_mesh_snowflake_add"
-    bl_label  = "Snowflake"
-
-    def draw( self, context ):
-        layout = self.layout
-        layout.operator_context = 'INVOKE_REGION_WIN'
-        layout.operator( 'mesh.add_snowflake', text='Snowflake' )
-        
-# Define "Snowflake" operator
+# Operator adding function (used to inject operator to menu)
 def menu_func( self, context ):
     self.layout.operator( 
         "mesh.add_snowflake", 
