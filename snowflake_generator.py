@@ -9,7 +9,7 @@ bl_info = {
     "category"    : "Add Mesh",
     "location"    : "View3D > Add > Mesh > Snowflake",
     "wiki_url"    : "",
-    "tracker_url" : "",
+    "tracker_url" : "https://github.com/Tlousky/blender_scripts/blob/master/snowflake_generator.py",
     "description" : "Generates Koch Snowflakes"
 }
 
@@ -205,7 +205,7 @@ class add_snowflake( bpy.types.Operator ):
     radius = bpy.props.FloatProperty(
         name        = "Radius",
         description = "Radius of the snowflake",
-        min         = -100.0,
+        min         = 0.1,
         max         = 100.0,
         unit        = 'LENGTH',
         default     = 1.0
