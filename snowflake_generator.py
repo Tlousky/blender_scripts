@@ -8,7 +8,7 @@ bl_info = {
     "blender"     : (2, 69, 0),
     "category"    : "Add Mesh",
     "location"    : "View3D > Add > Mesh > Snowflake",
-    "wiki_url"    : "",
+    "wiki_url"    : "https://github.com/Tlousky/blender_scripts/wiki/Snowflake-Generator",
     "tracker_url" : "https://github.com/Tlousky/blender_scripts/blob/master/snowflake_generator.py",
     "description" : "Generates Koch Snowflakes"
 }
