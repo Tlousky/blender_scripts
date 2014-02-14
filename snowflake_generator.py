@@ -52,7 +52,6 @@ def create_mesh_obj( name, data ):
     o = bpy.data.objects.new( name, m )
 
     o.location  = ( 0, 0, 0 )
-    o.show_name = True
 
     # Link object to scene
     bpy.context.scene.objects.link( o )
