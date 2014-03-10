@@ -26,7 +26,7 @@ bl_info = {
     "author"      : "Tamir Lousky",
     "version"     : (0, 0, 1),
     "blender"     : (2, 69, 0),
-    "category"    : "Add Mesh",
+    "category"    : "Add Curve",
     "warning"     : "",
     "location"    : "View3D > Add > Curve > Fibonacci",
     "wiki_url"    : "",
@@ -40,7 +40,6 @@ from math import sqrt, radians, sin, cos
 
 ## Constants
 w                = 1 # Curve weight  
-growth_direction = 1 # Direction of Fib spiral
 
 def F(n):
     ''' returns the Fibonacci number of n-th iteration '''
@@ -135,8 +134,7 @@ class add_fibonacci_spiral( bpy.types.Operator ):
         name        = "Iterations",
         description = "Number of fractal iterations",
         min         = 1,
-        max         = 6,
-        default     = 2
+        default     = 6
     )
 
     radius = bpy.props.FloatProperty(
@@ -149,7 +147,8 @@ class add_fibonacci_spiral( bpy.types.Operator ):
     )
 
     def create_control_points( self, context ):
-        listOfVectors = []
+        listOfVectors   = []
+        growth_direction = 1 # Direction of Fib spiral
 
         for i in range( self.iterations ):
             # Calculate offset distance
@@ -200,13 +199,13 @@ def register():
     bpy.utils.register_module(__name__)
 
     # Add "Fibonacci" menu to the "Add Mesh" menu
-    bpy.types.INFO_MT_mesh_add.append( menu_func )
+    bpy.types.INFO_MT_curve_add.append( menu_func )
 
 def unregister():
     bpy.utils.unregister_module(__name__)
 
     # Remove "Fibonacci" menu from the "Add Mesh" menu.
-    bpy.types.INFO_MT_mesh_add.remove( menu_func )
+    bpy.types.INFO_MT_curve_add.remove( menu_func )
 
 if __name__ == "__main__":
     register()
