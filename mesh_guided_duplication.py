@@ -17,7 +17,8 @@ bl_info = {
 
 
 import bpy, bmesh, json
-from   math import degrees, radians
+from   math      import degrees, radians
+from   mathutils import Vector
 
 class mesh_guided_duplication_panel( bpy.types.Panel ):
     bl_idname      = "MeshGuidedDuplication"
@@ -112,6 +113,23 @@ class mesh_guided_duplication( bpy.types.Operator ):
             any_selected_obj and is_mesh and obj_is_selected and obj_in_editmode
         )
 
+    def calc_angles_from_normal( self, co, normal ):
+        ''' To calculate the angles I need to rotate the object to match
+            the normal.
+            To do this, we'll create a vector that starts from the co and
+            goes 1 blender units up on Z.
+            Then we'll split the normal to three vectors and use two to 
+            calculate angles relative to the upward pointing vector.
+        '''
+
+        v_straight = co + Vector( ( 0, 0, 1 ) )
+        v_normal   = co + normal
+
+        #rot = v_straight.rotation_difference( v_normal )
+        rot = normal.rotation_difference( Vector( ( 1, 1, 1 ) ) )
+
+        return [ degrees(a) for a in rot.to_euler() ]
+
     def get_element_coordinates( self, context ):
         ''' Creates a list of coordinates from the selected mesh elements.
             Returns the global coordinates and the normal, converted to rotation
@@ -124,9 +142,10 @@ class mesh_guided_duplication( bpy.types.Operator ):
 
         if 'FACE' in bm.select_mode:
             for f in [ f for f in bm.faces if f.select ]:
+                co = f.calc_center_median()
                 coordinates.append( {
-                    'co' : f.calc_center_median() * o.matrix_world,
-                    'no' : [ degrees( a ) for a in f.normal ]
+                    'co' : co * o.matrix_world,
+                    'no' : self.calc_angles_from_normal( co, f.normal )
                 } )
             
         if 'EDGE' in bm.select_mode:
@@ -137,20 +156,15 @@ class mesh_guided_duplication( bpy.types.Operator ):
 
                 coordinates.append( {
                     'co' : avg_co * o.matrix_world,
-                    'no' : [ degrees( a ) for a in avg_no ]
+                    'no' : self.calc_angles_from_normal( avg_co, avg_no )
                 } )
 
         if 'VERT' in bm.select_mode:
-            for v in [ v for v in bm.verts if v.select ]: 
+            for v in [ v for v in bm.verts if v.select ]:
                 coordinates.append( {
                     'co' : v.co * o.matrix_world,
-                    'no' : [ degrees( a ) for a in v.normal ]
+                    'no' : self.calc_angles_from_normal( v.co, v.normal )
                 } )
-
-        # To calculate the angles I need to rotate the object to match the normal
-        # I can create a vector that starts from the vertex co, and subtract it from
-        # A vector representing a point 1 blender units up on Z axis.
-        # I can then c
 
         return coordinates
 
@@ -192,13 +206,6 @@ class mesh_guided_duplication( bpy.types.Operator ):
                 o = context.object      # Reference duplicated object
                 o.location = c['co']    # Set location to requested
 
-                print( 
-                    "duplicated %s as %s to: " % ( 
-                        props.source_object, props.duplicate_type 
-                    ), 
-                    c['co'] 
-                )
-                
             # Rotate object according to vertex normal
             if props.rotate_duplicates:
                 for i, a in enumerate( c['no'] ):
@@ -206,6 +213,8 @@ class mesh_guided_duplication( bpy.types.Operator ):
                         value = radians( a ), 
                         axis  = ( i == 0, i == 1, i == 2 )
                     )
+
+            print( "rotated obj by: ", c['no'] )
 
     def execute(self, context):
 
