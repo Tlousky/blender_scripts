@@ -1,15 +1,30 @@
 # Vertex guided duplication:
 # Author: Tamir Lousky. March 2014.
 
+bl_info = {    
+    "name"        : "Mesh Guided Duplication",
+    "author"      : "Tamir Lousky",
+    "version"     : (0, 0, 1),
+    "blender"     : (2, 69, 0),
+    "category"    : "Object",
+    "warning"     : "",
+    "location"    : "3D View >> Tools",
+    "wiki_url"    : "",
+    "tracker_url" : "",
+    "description" : "Duplicate objects or groups to the locations of selected \
+                     mesh elements on active object"
+}
+
+
 import bpy, bmesh
-from   math import degrees
+from   math import degrees, radians
 
 class mesh_guided_duplication_panel( bpy.types.Panel ):
     bl_idname      = "MeshGuidedDuplication"
     bl_label       = "Mesh Guided Duplication"
     bl_space_type  = 'VIEW_3D'
     bl_region_type = 'TOOLS'
-    bl_context     = 'edit'
+    #bl_context     = 'edit'
 
     @classmethod
     def poll( self, context ):
@@ -19,11 +34,59 @@ class mesh_guided_duplication_panel( bpy.types.Panel ):
         layout = self.layout
         col    = layout.column()
 
+        props = context.scene.mesh_dupli_props
+
         col.operator( 
             'object.mesh_guided_duplication',
             text = 'Duplicate to selected elements',
             icon = 'COPYDOWN'
         )
+
+        box = layout.box()
+        box.prop( props, 'duplicate_type' )
+
+        if props.duplicate_type == 'GROUP':
+            box.prop_search( 
+                props,    'source_group',
+                bpy.data, 'groups'
+            )
+        else:
+            box.prop_search(
+                props,         'source_object',
+                context.scene, 'objects'
+            )
+
+        box.prop( props, 'rotate_duplicates' )
+
+class MeshDumpliPropGroup( bpy.types.PropertyGroup ):
+    ''' Class meant to enable transferring data between operator and panel '''
+    types = [
+        ('DUPLICATE', 'Duplicate', ''), 
+        ('INSTANCE',  'Instance',  ''), 
+        ('GROUP',     'Group',     '')
+    ]
+
+    source_object = bpy.props.StringProperty(
+        description = "Object to duplicate",
+        name        = "Duplicate Object"
+    )
+
+    source_group = bpy.props.StringProperty(
+        description = "Group to duplicate",
+        name        = "Duplicate Group"
+    )
+
+    rotate_duplicates = bpy.props.BoolProperty(
+        description = "Rotate duplicates to match element normals",
+        name        = "Rotate to match normals",
+        default     = False
+    )
+
+    duplicate_type = bpy.props.EnumProperty(
+        name    = "Duplication Type",
+        items   = types, 
+        default = 'INSTANCE'
+    )
 
 class mesh_guided_duplication( bpy.types.Operator ):
     """ Duplicate an object or a group instance to all the selected elements on
@@ -33,34 +96,6 @@ class mesh_guided_duplication( bpy.types.Operator ):
     bl_idname  = "object.mesh_guided_duplication"
     bl_label   = "Mesh Guided Duplication"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}
-
-    source_object = bpy.props.StringProperty(
-        description = "Object to duplicate",
-        name        = "Duplicate Object",
-    )
-
-    source_group = bpy.props.StringProperty(
-        description = "Group to duplicate",
-        name        = "Duplicate Group",
-    )
-
-    rotate_duplicates = bpy.props.BoolProperty(
-        description = "Rotate duplicates to match element normals",
-        name        = "Rotate to match normals",
-        default     = False
-    )
-
-    types = [
-        ('DUPLICATE', 'Duplicate', ''), 
-        ('INSTANCE',  'Instance',  ''), 
-        ('GROUP',     'Group',     '')
-    ]
-
-    duplicate_type = bpy.props.EnumProperty(
-        name    = "Duplication Type",
-        items   = types, 
-        default = 'INSTANCE'
-    )
 
     @classmethod
     def poll( self, context ):
@@ -91,7 +126,7 @@ class mesh_guided_duplication( bpy.types.Operator ):
             for f in [ f for f in bm.faces if f.select ]:
                 coordinates.append( {
                     'co' : f.calc_center_median() * o.matrix_world,
-                    'no' : [ math.degrees( a ) for a in f.normal ]
+                    'no' : [ degrees( a ) for a in f.normal ]
                 } )
             
         if 'EDGE' in bm.select_mode:
@@ -102,14 +137,14 @@ class mesh_guided_duplication( bpy.types.Operator ):
 
                 coordinates.append( {
                     'co' : avg_co * o.matrix_world,
-                    'no' : [ math.degrees( a ) for a in avg_no ]
+                    'no' : [ degrees( a ) for a in avg_no ]
                 } )
 
         if 'VERT' in bm.select_mode:
             for v in [ v for v in bm.verts if v.select ]: 
                 coordinates.append( {
                     'co' : v.co * o.matrix_world,
-                    'no' : [ math.degrees( a ) for a in v.normal ]
+                    'no' : [ degrees( a ) for a in v.normal ]
                 } )
 
         # To calculate the angles I need to rotate the object to match the normal
@@ -124,14 +159,18 @@ class mesh_guided_duplication( bpy.types.Operator ):
             and rotate the objects to match provided rotation matrix if 
             'rotate_duplicates' option is selected.
         '''
+
+        props = context.scene.mesh_dupli_props
         
         for c in coordinates:
-            if self.duplicate_type = 'GROUP':
+            if props.duplicate_type == 'GROUP':
                 context.scene.cursorlocation = c['co'] # Cursor to coordinate
-                bpy.ops.object.group_instance_add( group = self.group_name )
+                bpy.ops.object.group_instance_add( 
+                    group = props.group_name
+                )
             else:
                 # Reference and select object
-                obj = context.scene.objects[ self.source_object ]
+                obj = context.scene.objects[ props.source_object ]
 
                 bpy.ops.object.select_all( action = 'DESELECT' )
                 obj.select = True
@@ -139,7 +178,7 @@ class mesh_guided_duplication( bpy.types.Operator ):
 
                 # Create a duplicate (or instance)
                 bpy.ops.object.duplicate( 
-                    linked = self.duplicate_type == 'INSTANCE' 
+                    linked = props.duplicate_type == 'INSTANCE' 
                 )
 
                 o = context.object # Reference duplicated object
@@ -149,30 +188,10 @@ class mesh_guided_duplication( bpy.types.Operator ):
             if self.rotate_duplicates:
                 for i, a in enumerate( c['no'] ):
                     bpy.ops.transform.rotate( 
-                        value = math.radians( a ), 
+                        value = radians( a ), 
                         axis  = ( i == 0, i == 1, i == 2 )
                     )
 
-    def draw(self, context):
-        layout = self.layout
-        
-        box = layout.box()
-          
-        box.prop( self, 'duplicate_type' )
-
-        if self.duplicate_type == 'GROUP':
-            box.prop_search( 
-                self,     'source_group',
-                bpy.data, 'groups'
-            )
-        else:
-            box.prop_search(
-                self,          'source_object',
-                context.scene, 'objects'
-            )
-
-        box.prop( self, 'rotate_duplicates' )
-        
     def execute(self, context):
 
         self.create_duplicates( 
@@ -184,6 +203,10 @@ class mesh_guided_duplication( bpy.types.Operator ):
 
 def register():
     bpy.utils.register_module(__name__)
+    bpy.types.Scene.mesh_dupli_props = bpy.props.PointerProperty( 
+        type = MeshDumpliPropGroup 
+    )
     
 def unregister():
     bpy.utils.unregister_module(__name__)
+    bpy.types.Scene.mesh_dupli_props = ''
