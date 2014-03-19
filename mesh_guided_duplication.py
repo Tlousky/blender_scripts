@@ -15,7 +15,6 @@ bl_info = {
                      mesh elements on active object"
 }
 
-
 import bpy, bmesh, json
 from   math      import degrees, radians
 from   mathutils import Vector
@@ -114,21 +113,17 @@ class mesh_guided_duplication( bpy.types.Operator ):
         )
 
     def calc_angles_from_normal( self, co, normal ):
-        ''' To calculate the angles I need to rotate the object to match
-            the normal.
-            To do this, we'll create a vector that starts from the co and
-            goes 1 blender units up on Z.
-            Then we'll split the normal to three vectors and use two to 
-            calculate angles relative to the upward pointing vector.
-        '''
+        ''' TODO '''
 
-        v_straight = co + Vector( ( 0, 0, 1 ) )
-        v_normal   = co + normal
-
-        #rot = v_straight.rotation_difference( v_normal )
-        rot = normal.rotation_difference( Vector( ( 1, 1, 1 ) ) )
-
-        return [ degrees(a) for a in rot.to_euler() ]
+        rot = Vector( ( 0, 0, 1 ) ).rotation_difference( normal )
+        
+        euler_opts = ['XYZ', 'XZY', 'YXZ', 'YZX', 'ZXY', 'ZYX']
+        eul  = rot.to_euler()
+        axis = rot.to_axis_angle()
+        
+        # return [ degrees(a) for a in eul ]
+        return [ a for a in eul ]
+        # return [ degrees( axis * rot[1] ) for axis in rot[0] ]
 
     def get_element_coordinates( self, context ):
         ''' Creates a list of coordinates from the selected mesh elements.
@@ -208,12 +203,16 @@ class mesh_guided_duplication( bpy.types.Operator ):
 
             # Rotate object according to vertex normal
             if props.rotate_duplicates:
+                o.rotation_euler = c['no']
+            
+                '''
                 for i, a in enumerate( c['no'] ):
                     bpy.ops.transform.rotate( 
-                        value = radians( a ), 
+                        value = a,
                         axis  = ( i == 0, i == 1, i == 2 )
                     )
-
+                '''
+                    
             print( "rotated obj by: ", c['no'] )
 
     def execute(self, context):
