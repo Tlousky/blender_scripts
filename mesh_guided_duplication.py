@@ -16,7 +16,7 @@ bl_info = {
 }
 
 
-import bpy, bmesh
+import bpy, bmesh, json
 from   math import degrees, radians
 
 class mesh_guided_duplication_panel( bpy.types.Panel ):
@@ -95,7 +95,7 @@ class mesh_guided_duplication( bpy.types.Operator ):
 
     bl_idname  = "object.mesh_guided_duplication"
     bl_label   = "Mesh Guided Duplication"
-    bl_options = {'REGISTER', 'UNDO', 'PRESET'}
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll( self, context ):
@@ -160,14 +160,22 @@ class mesh_guided_duplication( bpy.types.Operator ):
             'rotate_duplicates' option is selected.
         '''
 
+        bpy.ops.object.mode_set
         props = context.scene.mesh_dupli_props
         
+        bpy.ops.object.mode_set(mode = 'OBJECT')
+
         for c in coordinates:
             if props.duplicate_type == 'GROUP':
-                context.scene.cursorlocation = c['co'] # Cursor to coordinate
+                context.scene.cursor_location = c['co'] # Cursor to coordinate
                 bpy.ops.object.group_instance_add( 
-                    group = props.group_name
+                    group = props.source_group
                 )
+
+                o = context.object      # Reference duplicated object
+                o.location = c['co']    # Set location to requested                
+
+                print( "duplicating group: %s" % props.source_group )
             else:
                 # Reference and select object
                 obj = context.scene.objects[ props.source_object ]
@@ -181,11 +189,18 @@ class mesh_guided_duplication( bpy.types.Operator ):
                     linked = props.duplicate_type == 'INSTANCE' 
                 )
 
-                o = context.object # Reference duplicated object
+                o = context.object      # Reference duplicated object
                 o.location = c['co']    # Set location to requested
+
+                print( 
+                    "duplicated %s as %s to: " % ( 
+                        props.source_object, props.duplicate_type 
+                    ), 
+                    c['co'] 
+                )
                 
             # Rotate object according to vertex normal
-            if self.rotate_duplicates:
+            if props.rotate_duplicates:
                 for i, a in enumerate( c['no'] ):
                     bpy.ops.transform.rotate( 
                         value = radians( a ), 
