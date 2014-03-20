@@ -10,7 +10,7 @@ bl_info = {
     "warning"     : "",
     "location"    : "3D View >> Tools",
     "wiki_url"    : "",
-    "tracker_url" : "",
+    "tracker_url" : "https://github.com/Tlousky/blender_scripts/blob/master/mesh_guided_duplication.py",
     "description" : "Duplicate objects or groups to the locations of selected \
                      mesh elements on active object"
 }
@@ -24,7 +24,6 @@ class mesh_guided_duplication_panel( bpy.types.Panel ):
     bl_label       = "Mesh Guided Duplication"
     bl_space_type  = 'VIEW_3D'
     bl_region_type = 'TOOLS'
-    #bl_context     = 'edit'
 
     @classmethod
     def poll( self, context ):
@@ -113,17 +112,11 @@ class mesh_guided_duplication( bpy.types.Operator ):
         )
 
     def calc_angles_from_normal( self, co, normal ):
-        ''' TODO '''
-
+        ''' Use normal to calculate rotation angles '''
         rot = Vector( ( 0, 0, 1 ) ).rotation_difference( normal )
-        
-        euler_opts = ['XYZ', 'XZY', 'YXZ', 'YZX', 'ZXY', 'ZYX']
-        eul  = rot.to_euler()
-        axis = rot.to_axis_angle()
-        
-        # return [ degrees(a) for a in eul ]
+        eul = rot.to_euler()        
+
         return [ a for a in eul ]
-        # return [ degrees( axis * rot[1] ) for axis in rot[0] ]
 
     def get_element_coordinates( self, context ):
         ''' Creates a list of coordinates from the selected mesh elements.
@@ -138,8 +131,12 @@ class mesh_guided_duplication( bpy.types.Operator ):
         if 'FACE' in bm.select_mode:
             for f in [ f for f in bm.faces if f.select ]:
                 co = f.calc_center_median()
+                if co == co * o.matrix_world:
+                    co = co + o.location
+                else:
+                    co = co * o.matrix_world
                 coordinates.append( {
-                    'co' : co * o.matrix_world,
+                    'co' : co,
                     'no' : self.calc_angles_from_normal( co, f.normal )
                 } )
             
@@ -149,15 +146,25 @@ class mesh_guided_duplication( bpy.types.Operator ):
                 avg_co = ( e.verts[0].co     + e.verts[1].co     ) / 2
                 avg_no = ( e.verts[0].normal + e.verts[1].normal ) / 2
 
+                if avg_co == avg_co * o.matrix_world:
+                    avg_co = avg_co + o.location
+                else:
+                    avg_co = avg_co * o.matrix_world
+                
                 coordinates.append( {
-                    'co' : avg_co * o.matrix_world,
+                    'co' : avg_co,
                     'no' : self.calc_angles_from_normal( avg_co, avg_no )
                 } )
 
         if 'VERT' in bm.select_mode:
             for v in [ v for v in bm.verts if v.select ]:
+                co = v.co
+                if co == co * o.matrix_world:
+                    co = co + o.location
+                else:
+                    co = co * o.matrix_world
                 coordinates.append( {
-                    'co' : v.co * o.matrix_world,
+                    'co' : co,
                     'no' : self.calc_angles_from_normal( v.co, v.normal )
                 } )
 
@@ -184,7 +191,6 @@ class mesh_guided_duplication( bpy.types.Operator ):
                 o = context.object      # Reference duplicated object
                 o.location = c['co']    # Set location to requested                
 
-                print( "duplicating group: %s" % props.source_group )
             else:
                 # Reference and select object
                 obj = context.scene.objects[ props.source_object ]
@@ -202,21 +208,9 @@ class mesh_guided_duplication( bpy.types.Operator ):
                 o.location = c['co']    # Set location to requested
 
             # Rotate object according to vertex normal
-            if props.rotate_duplicates:
-                o.rotation_euler = c['no']
-            
-                '''
-                for i, a in enumerate( c['no'] ):
-                    bpy.ops.transform.rotate( 
-                        value = a,
-                        axis  = ( i == 0, i == 1, i == 2 )
-                    )
-                '''
-                    
-            print( "rotated obj by: ", c['no'] )
+            if props.rotate_duplicates: o.rotation_euler = c['no']
 
     def execute(self, context):
-
         self.create_duplicates( 
             context, 
             self.get_element_coordinates( context ) 
