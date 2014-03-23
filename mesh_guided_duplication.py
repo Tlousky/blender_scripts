@@ -57,7 +57,7 @@ class mesh_guided_duplication_panel( bpy.types.Panel ):
 
         box.prop( props, 'rotate_duplicates' )
         
-        if props.duplicate_type: box.prop( props, 'rotation_axis' )
+        if props.rotate_duplicates: box.prop( props, 'rotation_axis' )
 
 class MeshDumpliPropGroup( bpy.types.PropertyGroup ):
     ''' Class meant to enable transferring data between operator and panel '''
@@ -233,9 +233,9 @@ class mesh_guided_duplication( bpy.types.Operator ):
 
             # Rotate object according to vertex normal
             if props.rotate_duplicates:
-                if props.rotation_axis.x: o.rotation_euler.x = c['no'].x
-                if props.rotation_axis.y: o.rotation_euler.y = c['no'].y
-                if props.rotation_axis.z: o.rotation_euler.z = c['no'].z
+                if props.rotation_axis[0]: o.rotation_euler.x = c['no'][0]
+                if props.rotation_axis[1]: o.rotation_euler.y = c['no'][1]
+                if props.rotation_axis[2]: o.rotation_euler.z = c['no'][2]
 
     def execute(self, context):
         self.create_duplicates( 
