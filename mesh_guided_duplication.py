@@ -56,6 +56,8 @@ class mesh_guided_duplication_panel( bpy.types.Panel ):
             )
 
         box.prop( props, 'rotate_duplicates' )
+        
+        if props.duplicate_type: box.prop( props, 'rotation_axis' )
 
 class MeshDumpliPropGroup( bpy.types.PropertyGroup ):
     ''' Class meant to enable transferring data between operator and panel '''
@@ -81,12 +83,20 @@ class MeshDumpliPropGroup( bpy.types.PropertyGroup ):
         default     = False
     )
 
+    rotation_axis = bpy.props.BoolVectorProperty(
+        description = "Axis to use for rotation along normals",
+        name        = "Rotation Axis",
+        subtype     = "XYZ",
+        size        = 3,
+        default     = (True, True, True)
+    )
+    
     duplicate_type = bpy.props.EnumProperty(
         name    = "Duplication Type",
         items   = types, 
         default = 'INSTANCE'
     )
-
+    
 class mesh_guided_duplication( bpy.types.Operator ):
     """ Duplicate an object or a group instance to all the selected elements on
         the active mesh 
@@ -94,7 +104,7 @@ class mesh_guided_duplication( bpy.types.Operator ):
 
     bl_idname  = "object.mesh_guided_duplication"
     bl_label   = "Mesh Guided Duplication"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
     @classmethod
     def poll( self, context ):
@@ -222,8 +232,10 @@ class mesh_guided_duplication( bpy.types.Operator ):
                 o.location = c['co']    # Set location to requested
 
             # Rotate object according to vertex normal
-            if props.rotate_duplicates: o.rotation_euler = c['no']
-            
+            if props.rotate_duplicates:
+                if props.rotation_axis.x: o.rotation_euler.x = c['no'].x
+                if props.rotation_axis.y: o.rotation_euler.y = c['no'].y
+                if props.rotation_axis.z: o.rotation_euler.z = c['no'].z
 
     def execute(self, context):
         self.create_duplicates( 
