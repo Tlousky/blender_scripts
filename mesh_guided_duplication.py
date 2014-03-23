@@ -146,8 +146,6 @@ class mesh_guided_duplication( bpy.types.Operator ):
         rm = o.rotation_euler.to_matrix()               # Rotation matrix
         sm = o.scale.to_track_quat('X','Z').to_matrix() # Scale matrix
         
-        all_matrices = wm * rm
-        
         bm = bmesh.from_edit_mesh( o.data )
 
         coordinates = []
@@ -155,10 +153,10 @@ class mesh_guided_duplication( bpy.types.Operator ):
         if 'FACE' in bm.select_mode:
             for f in [ f for f in bm.faces if f.select ]:
                 co = f.calc_center_median()
-                if co == co * all_matrices:
+                if co == co * wm * rm:
                     co = co + o.location
                 else:
-                    co = co * all_matrices
+                    co = co * wm * rm
                 coordinates.append( {
                     'co' : co,
                     'no' : self.calc_angles_from_normal( co, f.normal )
@@ -170,10 +168,10 @@ class mesh_guided_duplication( bpy.types.Operator ):
                 avg_co = ( e.verts[0].co     + e.verts[1].co     ) / 2
                 avg_no = ( e.verts[0].normal + e.verts[1].normal ) / 2
 
-                if avg_co == avg_co * all_matrices:
+                if avg_co == avg_co * wm * rm:
                     avg_co = avg_co + o.location
                 else:
-                    avg_co = avg_co * all_matrices
+                    avg_co = avg_co * wm * rm
                 
                 coordinates.append( {
                     'co' : avg_co,
@@ -183,10 +181,10 @@ class mesh_guided_duplication( bpy.types.Operator ):
         if 'VERT' in bm.select_mode:
             for v in [ v for v in bm.verts if v.select ]:
                 co = v.co
-                if co == co * all_matrices:
+                if co == co * wm * rm:
                     co = co + o.location
                 else:
-                    co = co * all_matrices
+                    co = co * wm * rm
                 coordinates.append( {
                     'co' : co,
                     'no' : self.calc_angles_from_normal( v.co, v.normal )
