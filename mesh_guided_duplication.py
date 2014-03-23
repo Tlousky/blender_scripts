@@ -101,14 +101,22 @@ class mesh_guided_duplication( bpy.types.Operator ):
         ''' Only works with selected MESH type objects in Edit mode '''
         any_selected_obj = context.object
         is_mesh = obj_in_editmode = obj_is_selected = False
+        props = context.scene.mesh_dupli_props
 
         if context.object:
             is_mesh         = context.object.type == 'MESH'
             obj_in_editmode = context.object.mode == 'EDIT'
             obj_is_selected = context.object.select
 
+            group = props.duplicate_type == 'GROUP' and props.source_group != ''
+            obj   = props.duplicate_type != 'GROUP' and props.source_object!= ''
+            
         return (
-            any_selected_obj and is_mesh and obj_is_selected and obj_in_editmode
+            any_selected_obj and \
+            is_mesh          and \
+            obj_is_selected  and \
+            obj_in_editmode  and \
+            ( group or obj )
         )
 
     def calc_angles_from_normal( self, co, normal ):
@@ -204,11 +212,18 @@ class mesh_guided_duplication( bpy.types.Operator ):
                     linked = props.duplicate_type == 'INSTANCE' 
                 )
 
+                if props.duplicate_type != 'INSTANCE':
+                    # Apply rotation and scale
+                    bpy.ops.object.transform_apply( 
+                        rotation = True, scale = True 
+                    )
+                
                 o = context.object      # Reference duplicated object
                 o.location = c['co']    # Set location to requested
 
             # Rotate object according to vertex normal
             if props.rotate_duplicates: o.rotation_euler = c['no']
+            
 
     def execute(self, context):
         self.create_duplicates( 
