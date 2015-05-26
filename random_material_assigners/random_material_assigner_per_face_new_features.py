@@ -159,6 +159,7 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
 
         ## Distribute materials by loose parts
         elif self.assign_method == 'Loose Parts':
+            bm.verts.ensure_lookup_table()
             vert_indices = [ vert.index for vert in bm.verts ]  # Reference all vertex indices
 
             for vert in vert_indices:
