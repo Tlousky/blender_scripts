@@ -1,7 +1,7 @@
 # Author: Tamir Lousky
 # Updated: 23Jan2014
 
-bl_info = {    
+bl_info = {
     "name"        : "Snowflake Generator",
     "author"      : "Tamir Lousky",
     "version"     : (0, 0, 1),
@@ -16,7 +16,7 @@ bl_info = {
 import bpy, json, bmesh
 from mathutils import Vector, Matrix
 from math      import pi, radians, cos, sin, sqrt
-       
+
 def draw_initial_polygon( sides = 6, radius = 1.0 ):
     """ Create initial polygon shape """
 
@@ -55,11 +55,11 @@ def create_mesh_obj( name, data ):
 
     # Link object to scene
     bpy.context.scene.objects.link( o )
- 
+
     # Create mesh from given verts, edges, faces. Either edges or
     # faces should be [], or you ask for problems
     m.from_pydata( data['verts'], data['edges'], [] )
- 
+
     # Update mesh with new data
     m.update( calc_edges = True )
 
@@ -94,6 +94,8 @@ def create_snowflake( o, iterations = 2 ):
             bpy.ops.mesh.select_all(action = 'DESELECT')
 
             # Select current edge (by selecting its verts)
+            bm.verts.ensure_lookup_table() # Update verts list
+
             for v in edges[ edge ]:
                 bv[ v ].select = True
 
@@ -105,9 +107,9 @@ def create_snowflake( o, iterations = 2 ):
             bm.select_flush( True )
 
             # Find innermost edge
-            selected_edges = { 
+            selected_edges = {
                 e.index : set([ v.index for v in e.verts ]) \
-                for e in bm.edges if e.select 
+                for e in bm.edges if e.select
             }
 
             # Innermost edge shares both its verts with the other edges
@@ -127,6 +129,8 @@ def create_snowflake( o, iterations = 2 ):
                     break
 
             # Select innermost edge (by selecting its verts)
+            bm.verts.ensure_lookup_table() # Update verts list
+
             bpy.ops.mesh.select_all(action = 'DESELECT')
             for v in selected_edges[ mid ]:
                 bv[ v ].select = True
@@ -137,12 +141,12 @@ def create_snowflake( o, iterations = 2 ):
             bpy.ops.mesh.subdivide( number_cuts = 1 )
 
             # Select innermost vert (joint vert between both edges)
-            selected_edges_verts = [ 
-                set([ v.index for v in e.verts ]) for e in bm.edges if e.select 
+            selected_edges_verts = [
+                set([ v.index for v in e.verts ]) for e in bm.edges if e.select
             ]
 
             # Find common vert by intersecting both vert sets
-            joint_vert = list( 
+            joint_vert = list(
                 selected_edges_verts[0] & selected_edges_verts[1]
             ).pop()
 
@@ -152,13 +156,15 @@ def create_snowflake( o, iterations = 2 ):
             )
 
             # Calculate its new position: should create an equilateral triangle
+            bm.verts.ensure_lookup_table() # Update verts list
+
             vdiff = bv[ other_verts[1] ].co - bv[ other_verts[0] ].co
             vrot  = vdiff * rot_matrix
 
             new_pos = bv[ joint_vert ].co + vrot
 
             # Measure the distance between the object's origin and the original
-            # position of the vertex, and compare it with the translated 
+            # position of the vertex, and compare it with the translated
             # position, to see which is larger.
             orig_len = bv[ joint_vert ].co - o.location
             new_len  = new_pos             - o.location
@@ -169,7 +175,7 @@ def create_snowflake( o, iterations = 2 ):
                 vrot = vrot * turn_around_matrix
 
             # Select middle vert and translate it by the rotate vector
-            bpy.ops.mesh.select_all(action = 'DESELECT')            
+            bpy.ops.mesh.select_all(action = 'DESELECT')
             bv[ joint_vert ].select = True
 
             bm.select_flush( True )
@@ -200,7 +206,7 @@ class add_snowflake( bpy.types.Operator ):
         max         = 32,
         default     = 6
     )
-    
+
     radius = bpy.props.FloatProperty(
         name        = "Radius",
         description = "Radius of the snowflake",
@@ -212,30 +218,30 @@ class add_snowflake( bpy.types.Operator ):
 
     def draw(self, context):
         layout = self.layout
-        
+
         box = layout.box()
         box.prop( self, 'radius'     )
         box.prop( self, 'sides'      )
         box.prop( self, 'iterations' )
-        
+
     def execute(self, context):
 
-        create_snowflake( 
-            create_mesh_obj( 
+        create_snowflake(
+            create_mesh_obj(
                 'snowflake', draw_initial_polygon(
-                    sides  = self.sides, 
+                    sides  = self.sides,
                     radius = self.radius
-                ) 
+                )
             ), iterations = self.iterations
         )
-    
+
         return {'FINISHED'}
-        
+
 # Operator adding function (used to inject operator to menu)
 def menu_func( self, context ):
-    self.layout.operator( 
-        "mesh.add_snowflake", 
-        text = "Snowflake", 
+    self.layout.operator(
+        "mesh.add_snowflake",
+        text = "Snowflake",
         icon = "PLUGIN"
     )
 
