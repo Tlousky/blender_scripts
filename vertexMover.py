@@ -73,7 +73,6 @@ class VertexMoverPanel( bpy.types.Panel ):
 
         col.prop( props, 'newLoc' )
 
-        # Open new file and Save Blend file
         col.operator(
             'object.vertex_and_object_mover',
             text = 'Move',
