@@ -71,7 +71,6 @@ class VertexMoverPanel( bpy.types.Panel ):
         col.label( "Current Position" )
         col.label( "X: %s  Y: %s  Z: %s" % tuple( vertLoc ) ) 
 
-        col.label( "New Position" )
         col.prop( props, 'newLoc' )
 
         # Open new file and Save Blend file
