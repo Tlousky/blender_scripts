@@ -189,7 +189,7 @@ class add_snowflake( bpy.types.Operator ):
     iterations = bpy.props.IntProperty(
         name        = "Iterations",
         description = "Number of fractal iterations",
-        min         = 1,
+        min         = 0,
         max         = 6,
         default     = 2
     )
