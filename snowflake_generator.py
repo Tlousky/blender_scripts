@@ -154,25 +154,20 @@ def create_snowflake( o, iterations = 2 ):
             other_verts = list(
                 selected_edges_verts[0] ^ selected_edges_verts[1]
             )
+            
+            # Make sure vertices are in right order
+            if(other_verts[0] > other_verts[1]):
+                other_verts[0], other_verts[1] = other_verts[1], other_verts[0]
 
             # Calculate its new position: should create an equilateral triangle
             bm.verts.ensure_lookup_table() # Update verts list
 
             vdiff = bv[ other_verts[1] ].co - bv[ other_verts[0] ].co
+            vdiff[0] *=  sqrt(3)/2.0
+            vdiff[1] *=  sqrt(3)/2.0
             vrot  = vdiff * rot_matrix
 
             new_pos = bv[ joint_vert ].co + vrot
-
-            # Measure the distance between the object's origin and the original
-            # position of the vertex, and compare it with the translated
-            # position, to see which is larger.
-            orig_len = bv[ joint_vert ].co - o.location
-            new_len  = new_pos             - o.location
-
-            # If the translated-distance is smaller than the original-distance
-            # it means the vert was pushed inwards and must be rotate by 180 degrees
-            if orig_len.length > new_len.length:
-                vrot = vrot * turn_around_matrix
 
             # Select middle vert and translate it by the rotate vector
             bpy.ops.mesh.select_all(action = 'DESELECT')
