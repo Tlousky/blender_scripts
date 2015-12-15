@@ -1,12 +1,13 @@
 import bpy, bmesh
 from mathutils import Vector
 
-def vecSum( vList ):
+def bb_center( o ):
+    bb = [ o.matrix_world * Vector(p[:]) for p in o.bound_box ]
+
     vSum = Vector()
-    for v in vList:
-        vSum += v
+    for v in vList: vSum += v
         
-    return vSum
+    return vSum / len( vList )
 
 o = bpy.context.object
 
