@@ -1,5 +1,5 @@
 # Author: Tamir Lousky
-# Updated: 23Jan2014
+# Updated: 27Dec2015
 
 bl_info = {
     "name"        : "Add Archimedian Spiral",
