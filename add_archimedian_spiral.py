@@ -26,4 +26,4 @@ def add_archimedian_spiral( size = 0.1, length = 500, height = 1, name = 'archis
 
     mesh.from_pydata( verts, edges, [] )
     
-add_archimedian_spiral( 0.1, 500, 'archispiral' )
+add_archimedian_spiral( 0.1, 500, 6, 'archispiral' )
