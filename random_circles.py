@@ -21,9 +21,9 @@ def check_overlap( circles, circC, circR ):
     return len( [ True for c in circles if ( c - circC ).length >= circR * 2 ] ) == len( circles )
 
 circleRadius = 0.5
-circleCount  = 100
-rectCenter   = Vector((0, 0, 0))
-rectRadius   = 10
+circleCount  = 50
+rectCenter   = Vector((4, 3.5, 0))
+rectRadius   = 6.5
 
 circles = []
 
@@ -32,7 +32,8 @@ maxIterations = 500
 z = 0 # All circles lie on Z = 0
 i = 0
 while len( circles ) < circleCount and i < maxIterations:
-    x, y = [ 2 * rectRadius * random() - rectRadius for axis in 'xy' ]
+    x = rectCenter.x + 2 * rectRadius * random() - rectRadius
+    y = rectCenter.y + 2 * rectRadius * random() - rectRadius
     circC = Vector((x, y, z ))
     
     if check_circle_bounbox( circC, circleRadius, rectCenter, rectRadius ) \
