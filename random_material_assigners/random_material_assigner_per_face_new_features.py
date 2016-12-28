@@ -54,6 +54,11 @@ class random_mat_panel(bpy.types.Panel):
     bl_region_type = 'TOOLS'
     bl_context     = 'objectmode'
 
+    @classmethod
+    def poll( self, context ):
+        ''' Only show panel if there is an active mesh object '''
+        return context.object and context.object.type == 'MESH'
+
     def draw( self, context):                # Draw panel UI elements #
         layout = self.layout                 # Reference to panel layout object
 
