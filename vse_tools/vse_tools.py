@@ -10,9 +10,16 @@ bl_info = {
 
 import bpy
 
-def sort_sequqnces( vse ):
-    ''' Return a sorted list of VSE sequence objects '''
-    return sorted( vse.sequences[:], key = lambda s: s.frame_final_start )
+def sort_sequqnces( vse, typeFilter = [] ):
+    ''' Return a sorted list of VSE sequence names '''
+    if not vse or not vse.sequences: return []
+
+    seqSorted = sorted( vse.sequences[:], key = lambda s: s.frame_final_start )
+
+    if typeFilter:
+        return [ s.name for s in seqSorted if s.type in typeFilter ]
+    else:
+        return [ s.name for s in seqSorted ]
 
 class video_editing_tools_panel( bpy.types.Panel ):
     bl_idname      = "PANEL_vse_tools"
@@ -47,6 +54,12 @@ class video_editing_tools_panel( bpy.types.Panel ):
             'sequencer.snap_two_sequences',
             text = "",
             icon = 'SNAP_ON'
+        )
+
+        row.operator(
+            'sequencer.snap_to_next',
+            text = "",
+            icon = 'FF'
         )
 
 class setFrameToClipStart( bpy.types.Operator ):
@@ -115,6 +128,58 @@ class snapSelectedSeqToActiveSeq( bpy.types.Operator ):
             context.scene.frame_set(
                 context.scene.sequence_editor.active_strip.frame_final_end
             )
+
+        return {'FINISHED'}
+
+class snapToClosest( bpy.types.Operator ):
+    bl_idname      = "sequencer.snap_to_next"
+    bl_label       = "Snap next"
+    bl_description = "Snap the active sequence to the next sequence"
+    bl_options     = {'REGISTER', 'UNDO'}
+
+    mode = bpy.props.StringProperty( default = "NEXT" )
+
+    @classmethod
+    def poll( self, context ):
+        vse               = context.scene.sequence_editor
+        act               = vse.active_strip
+        return vse and act
+
+    def execute( self, context ):
+        vse            = context.scene.sequence_editor
+        act            = vse.active_strip
+        seqNamesSorted = sort_sequqnces( vse )
+
+        actIdx  = seqNamesSorted.index( act.name )
+
+        if actIdx == len( seqNamesSorted ) - 1:
+            return {'CANCELLED'}
+
+        nextSeq = vse.sequences[ seqNamesSorted[ actIdx + 1] ]
+
+        act.frame_start = nextSeq.frame_final_end - act.frame_final_duration - nextSeq.frame_final_duration
+
+        context.scene.frame_set(
+            context.scene.sequence_editor.active_strip.frame_final_end
+        )
+
+        return {'FINISHED'}
+
+class crossFadeToBlack( bpy.types.Operator ):
+    bl_idname      = "sequencer.cross_fade_to_black"
+    bl_label       = "Fade to black"
+    bl_description = "Add a fade to black transition between the two selected sequences"
+    bl_options     = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll( self, context ):
+        vse               = context.scene.sequence_editor
+        act               = vse.active_strip
+        selectedSequences = [ s for s in vse.sequences if s.select ]
+        return vse and act and len( selectedSequences ) == 2
+
+    def execute( self, context ):
+        pass
 
         return {'FINISHED'}
 
