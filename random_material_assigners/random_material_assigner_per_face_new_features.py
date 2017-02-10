@@ -174,7 +174,7 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
                 bm.verts[vert].select = True
 
                 # Select all verts linked to this one (on the same island or "loose part")
-                bpy.ops.mesh.select_linked( limit=False )
+                bpy.ops.mesh.select_linked()
 
                 # Go to face selection mode
                 bm.select_mode = {'FACE'}
@@ -229,4 +229,4 @@ def register():
 
 def unregister():
     bpy.utils.unregister_module(__name__)
-    bpy.types.Scene.face_assigner = bpy.props.PointerProperty(type=rand_mat_assigner)
+    bpy.types.Scene.face_assigner = None
