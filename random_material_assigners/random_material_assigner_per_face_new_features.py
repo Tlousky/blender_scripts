@@ -23,7 +23,7 @@
 #  Homepage(Wiki)    : http://bioblog3d.wordpress.com/
 #
 #  Start of project              : 2013-01-25 by Tamir Lousky
-#  Last modified                 : 2015-05-25
+#  Last modified                 : 2017-02-10
 #
 #  Acknowledgements
 #  ================
@@ -35,8 +35,8 @@
 bl_info = {
     "name"       : "Random Face Material Assigner",
     "author"     : "Tamir Lousky",
-    "version"    : (3, 0, 1),
-    "blender"    : (2, 74, 0),
+    "version"    : (3, 0, 2),
+    "blender"    : (2, 78, 0),
     "category"   : "Materials",
     "location"   : "3D View >> Tools",
     "wiki_url"   : "http://bioblog3d.wordpress.com/2013/03/20/random-material-assigner-v2/",
