@@ -23,7 +23,7 @@
 #  Homepage(Wiki)    : http://bioblog3d.wordpress.com/
 #
 #  Start of project              : 2013-01-25 by Tamir Lousky
-#  Last modified                 : 2015-05-25
+#  Last modified                 : 2017-02-10
 #
 #  Acknowledgements
 #  ================
@@ -35,8 +35,8 @@
 bl_info = {
     "name"       : "Random Face Material Assigner",
     "author"     : "Tamir Lousky",
-    "version"    : (3, 0, 1),
-    "blender"    : (2, 74, 0),
+    "version"    : (3, 0, 2),
+    "blender"    : (2, 78, 0),
     "category"   : "Materials",
     "location"   : "3D View >> Tools",
     "wiki_url"   : "http://bioblog3d.wordpress.com/2013/03/20/random-material-assigner-v2/",
@@ -174,7 +174,7 @@ class rand_mat_assigner(bpy.types.PropertyGroup):
                 bm.verts[vert].select = True
 
                 # Select all verts linked to this one (on the same island or "loose part")
-                bpy.ops.mesh.select_linked( limit=False )
+                bpy.ops.mesh.select_linked()
 
                 # Go to face selection mode
                 bm.select_mode = {'FACE'}
@@ -229,4 +229,4 @@ def register():
 
 def unregister():
     bpy.utils.unregister_module(__name__)
-    bpy.types.Scene.face_assigner = bpy.props.PointerProperty(type=rand_mat_assigner)
+    bpy.types.Scene.face_assigner = None
