@@ -15,21 +15,22 @@ class TextLine():
     def __init__( self ):
         self.text_objects = []
 
-    def create_text( self, text, start, end, x, y, seq, channel, fontsize ):
+    def create_text( self, text, start, end, x, y, seq, channel, fontsize, background ):
         t = seq.new_effect( text, 'TEXT', channel, start, end )
         t.text        = text
+        t.color       = (0.5, 0.5, 0.5, 0.5) if background else (1,1,1,1)
         t.align_x     = 'LEFT'
         t.align_y     = 'CENTER'
-        t.blend_type  = 'ALPHA_OVER' # 'REPLACE'
+        t.blend_type  = 'ADD' if background else 'ALPHA_OVER'
         t.font_size   = fontsize
         t.location[0] = x
         t.location[1] = y
         
         return t
         
-    def add_text( self, text, start, end, x, y, seq, channel = 3, fontsize = 40 ):
+    def add_text( self, text, start, end, x, y, seq, channel = 3, fontsize = 40, background = False ):
         self.text_objects.append(
-            self.create_text( text, start, end, x, y, seq, channel, fontsize ) 
+            self.create_text( text, start, end, x, y, seq, channel, fontsize, background ) 
         )
         
 class Slide():
@@ -42,7 +43,7 @@ class Slide():
         self.lines.append( line )
 
 class LyricsVideo():
-    def __init__( self, audioFile, markersFile, vseSequences, scn, audioChannel = 1 ):
+    def __init__( self, audioFile, markersFile, vseSequences, scn, audioChannel = 1, backgroundFile = None ):
         self.slides        = []
         self.audio_file    = audioFile
         self.markers_file  = markersFile
@@ -59,8 +60,12 @@ class LyricsVideo():
         self.markers = pd.read_csv( markersFile, sep = '\t' )       
         
         # Create background
-        bg = vseSequences.new_effect( 'BG', 'COLOR', 2, 1, scn.frame_end ) 
-        bg.color = (0,0,0)
+        if backgroundFile:
+            bg = vseSequences.new_image( 'BG', backgroundFile, 2, 1 )
+            bg.frame_final_end = scn.frame_end
+        else:
+            bg = vseSequences.new_effect( 'BG', 'COLOR', 2, 1, scn.frame_end ) 
+            bg.color = (0,0,0)
         
         self.create_slides( vseSequences )
 
@@ -82,7 +87,7 @@ class LyricsVideo():
             lineIndices  = [slideStart] + list( slideMarkers[ slideMarkers['Type'] == 'Subclip' ].index )
 
             slideFrameStart = timecode( df.loc[ slideStart, 'Start' ], self.fps ).frame
-            slideFrameEnd   = timecode( df.loc[ slideEnd,   'Start' ], self.fps ).frame
+            slideFrameEnd   = timecode( df.loc[ slideEnd,   'Start' ], self.fps ).frame if i < len( track_indices ) - 1 else self.audio.frame_final_end
             slide = Slide( slideFrameStart, slideFrameEnd )
 
             for j, lineIdx in enumerate( lineIndices ):
@@ -90,7 +95,6 @@ class LyricsVideo():
                 lineEnd   = lineIndices[j+1] - 1 if j < len( lineIndices ) - 1 else slideEnd - 1 if i < len( track_indices ) - 1 else df.index[-1]
                 lineMarkers = df.loc[ lineStart : lineEnd ]
 
-                wholeLineText = ' '.join( lineMarkers.loc[:, df.columns[0] ].as_matrix() )
                 line = TextLine()
                 textSoFar = ''
                 textChannel += 1
@@ -114,9 +118,32 @@ class LyricsVideo():
                     
                 slide.add_line( line )
             
+            # Maximize font size
+            maxTextLen    = max( [ len( t.text ) for l in slide.lines for t in l.text_objects ] )
+            slideFontSize = int( round( 3100 / maxTextLen ) )
+
+            for l in slide.lines:
+                for t in l.text_objects:
+                    t.font_size = slideFontSize
+
+            # Generate background text
+            for lidx, l in enumerate( slide.lines ):
+                t = l.text_objects[-1]
+
+                l.add_text( 
+                    t.text,
+                    slide.frame_start if i != 0 else 1,
+                    slide.frame_end,
+                    t.location[0],
+                    t.location[1],
+                    seq,
+                    len( slide.lines ) + 3 + lidx,
+                    t.font_size,
+                    background = True
+                )
+                
             self.slides.append( slide )
             
-
 
 C = bpy.context
 S = C.scene
@@ -127,8 +154,9 @@ vse = S.sequence_editor
 seq = vse.sequences
 
 lv = LyricsVideo( 
-    audioFile    = 'E:/Drive/Hellscore/Iron Maiden Medley/Iron Maiden Medley BASS.mp3',
-    markersFile  = r'E:\Drive\Documents\Hellscore\Hellscore_songs\IronMaiden_Medely\Markers.csv',
-    vseSequences = seq,
-    scn          = S 
+    audioFile      = 'E:/Drive/Hellscore/Iron Maiden Medley/Iron Maiden Medley BASS.mp3',
+    markersFile    = r'E:\Drive\Documents\Hellscore\Hellscore_songs\IronMaiden_Medely\Markers.csv',
+    vseSequences   = seq,
+    scn            = S,
+    backgroundFile = r'E:\Drive\Documents\Hellscore\Hellscore_songs\BG.jpg'
 )
