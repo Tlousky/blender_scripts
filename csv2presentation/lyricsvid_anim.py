@@ -79,13 +79,18 @@ class TextLine():
         self.text_objects.append( textObj )
 
 class Slide():
-    def __init__( self, vid, frame_start, frame_end, scn, x, y, slideIndex ):
+    def __init__( self, vid, frame_start, frame_end, scn, x, y, slideIndex, camera_height, animateCamera = False, cameraMovementTime = 10 ):
         self.vid         = vid
         self.frame_start = frame_start
         self.frame_end   = frame_end
         self.lines       = []
         self.create_parent( scn, x, y, slideIndex )
         self.index       = slideIndex
+
+        if animateCamera:
+            scn.camera.keyframe_insert( 'location', 1, frame_start - cameraMovementTime )
+            scn.camera.location.y -= camera_height
+            scn.camera.keyframe_insert( 'location', 1, frame_start )
 
     def create_parent( self, scn, x, y, i ):
         self.parent = create_parent( scn, x, y, "slide_{}".format( i ) )
@@ -130,10 +135,11 @@ class LyricsVideo():
             bg = vseSequences.new_effect( 'BG', 'COLOR', 2, 1, scn.frame_end )
             bg.color = (0,0,0)
 
-        bg.blend_type = 'ALPHA_UNDER'
+        bg.blend_type = 'REPLACE'
 
         # Add scene to vse
-        vse.sequences.new_scene( name = 'Scene', scene = scn, channel = 5, frame_start = scn.frame_start )
+        vseScn = vse.sequences.new_scene( name = 'Scene', scene = scn, channel = 5, frame_start = scn.frame_start )
+        vseScn.blend_type = 'ALPHA_OVER'
 
         self.create_slides( vseSequences, scn )
 
@@ -163,7 +169,7 @@ class LyricsVideo():
             slideFrameStart = timecode( df.loc[ slideStart, 'Start' ], self.fps ).frame
             slideFrameEnd   = timecode( df.loc[ slideEnd,   'Start' ], self.fps ).frame if i < len( track_indices ) - 1 else self.audio.frame_final_end
             slideY          = -i * camera_height
-            slide           = Slide( self, slideFrameStart, slideFrameEnd, scn, x, slideY, i )
+            slide           = Slide( self, slideFrameStart, slideFrameEnd, scn, x, slideY, i, camera_height, animateCamera = (i > 0) )
 
             textLines = []
             for j, lineIdx in enumerate( lineIndices ):
