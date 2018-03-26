@@ -3,6 +3,13 @@ import pandas as pd
 from os.path import basename
 from datetime import datetime as dt
 
+def create_parent( scn, x, y, name ):
+    p = bpy.data.objects.new( name, None )
+    p.location = ( x, y, 0 )
+    scn.objects.link( p )
+
+    return p
+
 class timecode():
     ''' Convert from timecode string to time object, seconds and frames '''
     def __init__( self, timeString, fps ):
@@ -12,9 +19,18 @@ class timecode():
         self.frame     = int( round( self.seconds * fps ) )
 
 class TextLine():
-    def __init__( self, fadeInDuration = 10 ):
-        self.text_objects = []
+    def __init__( self, slide, scn, x, y, lineIndex, fadeInDuration = 10 ):
+        self.slide          = slide
+        self.text_objects   = []
         self.fadeInDuration = fadeInDuration
+        self.create_parent( scn, x, y, lineIndex )
+
+    def create_parent( self, scn, x, y, i ):
+        name = "{}_line_{}".format( self.slide.parent.name, i )
+        self.parent = create_parent( scn, x, y, name )
+        scn.update()
+        self.parent.parent = self.slide.parent
+        self.parent.matrix_parent_inverse = self.slide.parent.matrix_world.inverted()
 
     def create_text( self, text, start, end, x, y, scn, channel, fontsize, baseMat, background ):
         # Generate text curve data
@@ -29,7 +45,7 @@ class TextLine():
         scn.objects.link( o )
 
         o.location = (x, y, 0)
-        o.scale = (fontsize, fontsize, 1)
+        o.scale    = (fontsize, fontsize, 1)
 
         # Text material and animation
         m                 = baseMat.copy()
@@ -55,15 +71,24 @@ class TextLine():
             scn.update()
             x    = last.location.x + last.dimensions.x + xInterval
 
-        self.text_objects.append(
-            self.create_text( text, start, end, x, y, scn, channel, fontsize, baseMat, background )
-        )
+        textObj = self.create_text( text, start, end, x, y, scn, channel, fontsize, baseMat, background )
+        scn.update()
+        textObj.parent = self.parent
+        textObj.matrix_parent_inverse = self.parent.matrix_world.inverted()
+
+        self.text_objects.append( textObj )
 
 class Slide():
-    def __init__( self, frame_start, frame_end ):
+    def __init__( self, vid, frame_start, frame_end, scn, x, y, slideIndex ):
+        self.vid         = vid
         self.frame_start = frame_start
         self.frame_end   = frame_end
         self.lines       = []
+        self.create_parent( scn, x, y, slideIndex )
+        self.index       = slideIndex
+
+    def create_parent( self, scn, x, y, i ):
+        self.parent = create_parent( scn, x, y, "slide_{}".format( i ) )
 
     def add_line( self, line ):
         self.lines.append( line )
@@ -122,6 +147,11 @@ class LyricsVideo():
         # Divide markers into slides and lines
         track_indices = list( df[ df['Type'] == 'Track' ].index )
 
+        # Maximize font size - TODO: Need to revise and adapt to camera viewsize
+        xy_ratio      = scn.render.resolution_x / scn.render.resolution_y
+        line_width    = scn.camera.data.ortho_scale
+        camera_height = line_width / xy_ratio
+        x             = 0
         for i, slideIdx in enumerate( track_indices ):
             textChannel = self.audio_channel + 1
             slideStart   = slideIdx
@@ -129,14 +159,11 @@ class LyricsVideo():
             slideMarkers = df.loc[ slideStart : slideEnd ]
             lineIndices  = [slideStart] + list( slideMarkers[ slideMarkers['Type'] == 'Subclip' ].index )
 
+            x = 0
             slideFrameStart = timecode( df.loc[ slideStart, 'Start' ], self.fps ).frame
             slideFrameEnd   = timecode( df.loc[ slideEnd,   'Start' ], self.fps ).frame if i < len( track_indices ) - 1 else self.audio.frame_final_end
-            slide = Slide( slideFrameStart, slideFrameEnd )
-
-            # Maximize font size - TODO: Need to revise and adapt to camera viewsize
-            xy_ratio      = scn.render.resolution_x / scn.render.resolution_y
-            line_width    = scn.camera.data.ortho_scale
-            camera_height = line_width / xy_ratio
+            slideY          = -i * camera_height
+            slide           = Slide( self, slideFrameStart, slideFrameEnd, scn, x, slideY, i )
 
             textLines = []
             for j, lineIdx in enumerate( lineIndices ):
@@ -144,7 +171,16 @@ class LyricsVideo():
                 lineEnd   = lineIndices[j+1] - 1 if j < len( lineIndices ) - 1 else slideEnd - 1 if i < len( track_indices ) - 1 else df.index[-1]
                 lineMarkers = df.loc[ lineStart : lineEnd ]
 
-                line = TextLine()
+                # Calculate y for this line
+                lineY = slideY
+                if len( slide.lines ):
+                    lastLine = slide.lines[-1]
+                    if len( lastLine.text_objects ):
+                        scn.update()
+                        maxYtextObj = max( lastLine.text_objects, key = lambda o: o.dimensions.y )
+                        lineY = maxYtextObj.location.y - maxYtextObj.dimensions.y - yInterval
+
+                line = TextLine( slide, scn, x, lineY, j )
                 textSoFar = ''
                 textChannel += 1
                 for k, markerIndex in enumerate( lineMarkers.index ):
@@ -156,15 +192,6 @@ class LyricsVideo():
                         nextMarkerIdx = lineMarkers.index[ k + 1 ]
                         textEnd = timecode( lineMarkers.loc[ nextMarkerIdx, 'Start' ], self.fps ).frame - 1
 
-                    # Calculate y for this line
-                    y = 0
-                    if len( slide.lines ):
-                        lastLine = slide.lines[-1]
-                        if len( lastLine.text_objects ):
-                            scn.update()
-                            maxYtextObj = max( lastLine.text_objects, key = lambda o: o.dimensions.y )
-                            y = maxYtextObj.location.y - maxYtextObj.dimensions.y - yInterval
-
                     line.add_text(
                         text      = text,
                         start     = timecode( lineMarkers.loc[ markerIndex, 'Start' ], self.fps ).frame - 1,
@@ -172,7 +199,7 @@ class LyricsVideo():
                         scn       = scn,
                         baseMat   = self.baseMat,
                         xInterval = line_width / 50,
-                        y         = y,
+                        y         = lineY,
                         fontsize  = 0.65
                     )
 
