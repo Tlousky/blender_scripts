@@ -45,13 +45,17 @@ class TextLine():
 
         #t.color = (0.5, 0.5, 0.5, 0.5) if background else (1,1,1,1)
 
-        return t
+        return o
 
     def add_text( self, text, start, end, scn, baseMat, y = 0, channel = 3, fontsize = 1, background = False ):
         # Place next word right after the last one
+        x = 0 # First word x is 0
         if len( self.text_objects ):
             last = self.text_objects[-1]
+            scn.update()
             x    = last.location.x + last.dimensions.x
+
+            print( text, " at: ", x )
 
         self.text_objects.append(
             self.create_text( text, start, end, x, y, scn, channel, fontsize, baseMat, background )
@@ -67,7 +71,7 @@ class Slide():
         self.lines.append( line )
 
 class LyricsVideo():
-    def __init__( self, audioFile, markersFile, vseSequences, scn, audioChannel = 1, backgroundFile = None ):
+    def __init__( self, audioFile, markersFile, vseSequences, scn, audioChannel = 1, backgroundFile = None, baseMat = None ):
         self.slides        = []
         self.audio_file    = audioFile
         self.markers_file  = markersFile
@@ -76,6 +80,14 @@ class LyricsVideo():
             basename( audioFile ), audioFile, audioChannel, 1
         )
         self.fps = scn.render.fps
+
+        if baseMat:
+            self.baseMat = baseMat
+        else:
+            m = bpy.data.materials.new("baseMat")
+            m.use_shadeless = True
+            m.use_transparency = True
+            self.baseMat = m
 
         # Set scene to match sound file
         scn.frame_start = self.audio.frame_start
@@ -98,7 +110,7 @@ class LyricsVideo():
         bg.blend_type = 'ALPHA_UNDER'
 
         # Add scene to vse
-        vse.sequences.new_scene( name = 'Scene', scene = scn, channel = 5 )
+        vse.sequences.new_scene( name = 'Scene', scene = scn, channel = 5, frame_start = scn.frame_start )
 
         self.create_slides( vseSequences, scn )
 
@@ -106,7 +118,7 @@ class LyricsVideo():
         ''' Normalize any value between 0-1 to the xlim provided range '''
         return xlim[0] + ( xlim[1] - xlim[0] ) * val
 
-    def create_slides( self, scn, yStart = 0.95, yInterval = 0.1 ):
+    def create_slides( self, seq, scn, yStart = 0.95, yInterval = 0.1 ):
         df = self.markers
 
         # Divide markers into slides and lines
@@ -140,13 +152,23 @@ class LyricsVideo():
                     if k < len( lineMarkers ) - 1:
                         nextMarkerIdx = lineMarkers.index[ k + 1 ]
                         textEnd = timecode( lineMarkers.loc[ nextMarkerIdx, 'Start' ], self.fps ).frame - 1
+
+                    # Calculate y for this line
+                    y = 0
+                    if len( slide.lines ):
+                        lastLine = slide.lines[-1]
+                        if len( lastLine.text_objects ):
+                            scn.update()
+                            maxYtextObj = max( lastLine.text_objects, key = lambda o: o.dimensions.y )
+                            y = maxYtextObj.location.y + maxYtextObj.dimensions.y + yInterval
+
                     line.add_text(
                         text     = text,
                         start    = timecode( lineMarkers.loc[ markerIndex, 'Start' ], self.fps ).frame - 1,
                         end      = textEnd,
                         scn      = scn,
                         baseMat  = self.baseMat,
-                        y        = yStart - yInterval * j,
+                        y        = y,
                         fontsize = 1
                     )
 
@@ -195,9 +217,9 @@ vse = S.sequence_editor
 seq = vse.sequences
 
 lv = LyricsVideo(
-    audioFile      = 'E:/Drive/Hellscore/Iron Maiden Medley/Iron Maiden Medley BASS.mp3',
-    markersFile    = r'E:\Drive\Documents\Hellscore\Hellscore_songs\IronMaiden_Medely\Markers.csv',
+    audioFile      = r'C:\Users\TLOUSKY\Google Drive\Documents\Hellscore\Hellscore_songs\Afterlife\int + v1+ pc1 + c1 + v2 + pc2 + c2 + cpart + c3- Bariton.mp3',
+    markersFile    = r'C:\Users\TLOUSKY\Google Drive\Documents\Hellscore\Hellscore_songs\Afterlife\Afterlife_baritone_All.csv',
     vseSequences   = seq,
     scn            = S,
-    backgroundFile = r'E:\Drive\Documents\Hellscore\Hellscore_songs\BG.jpg'
+    backgroundFile = r'C:\Users\TLOUSKY\Google Drive\Documents\Hellscore\Hellscore_songs\BG.jpg'
 )
