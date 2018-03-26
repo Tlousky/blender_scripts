@@ -47,15 +47,13 @@ class TextLine():
 
         return o
 
-    def add_text( self, text, start, end, scn, baseMat, y = 0, channel = 3, fontsize = 1, background = False ):
+    def add_text( self, text, start, end, scn, baseMat, xInterval, y = 0, channel = 3, fontsize = 1, background = False ):
         # Place next word right after the last one
         x = 0 # First word x is 0
         if len( self.text_objects ):
             last = self.text_objects[-1]
             scn.update()
-            x    = last.location.x + last.dimensions.x
-
-            print( text, " at: ", x )
+            x    = last.location.x + last.dimensions.x + xInterval
 
         self.text_objects.append(
             self.create_text( text, start, end, x, y, scn, channel, fontsize, baseMat, background )
@@ -135,6 +133,11 @@ class LyricsVideo():
             slideFrameEnd   = timecode( df.loc[ slideEnd,   'Start' ], self.fps ).frame if i < len( track_indices ) - 1 else self.audio.frame_final_end
             slide = Slide( slideFrameStart, slideFrameEnd )
 
+            # Maximize font size - TODO: Need to revise and adapt to camera viewsize
+            xy_ratio      = scn.render.resolution_x / scn.render.resolution_y
+            line_width    = scn.camera.data.ortho_scale
+            camera_height = line_width / xy_ratio
+
             textLines = []
             for j, lineIdx in enumerate( lineIndices ):
                 lineStart = lineIdx
@@ -160,31 +163,28 @@ class LyricsVideo():
                         if len( lastLine.text_objects ):
                             scn.update()
                             maxYtextObj = max( lastLine.text_objects, key = lambda o: o.dimensions.y )
-                            y = maxYtextObj.location.y + maxYtextObj.dimensions.y + yInterval
+                            y = maxYtextObj.location.y - maxYtextObj.dimensions.y - yInterval
 
                     line.add_text(
-                        text     = text,
-                        start    = timecode( lineMarkers.loc[ markerIndex, 'Start' ], self.fps ).frame - 1,
-                        end      = textEnd,
-                        scn      = scn,
-                        baseMat  = self.baseMat,
-                        y        = y,
-                        fontsize = 1
+                        text      = text,
+                        start     = timecode( lineMarkers.loc[ markerIndex, 'Start' ], self.fps ).frame - 1,
+                        end       = textEnd,
+                        scn       = scn,
+                        baseMat   = self.baseMat,
+                        xInterval = line_width / 50,
+                        y         = y,
+                        fontsize  = 0.65
                     )
 
                 slide.add_line( line )
                 textLines.append( textSoFar )
 
-            # Maximize font size - TODO: Need to revise and adapt to camera viewsize
-            xy_ratio    = scn.render.resolution_x / scn.render.resolution_y
-            line_width  = scn.camera.ortho_scale
-            line_height = line_width / xy_ratio
-
             maxTextLen = max([
                     ( o.location.x + o.dimensions.x ) for l in slide.lines for o in l.text_objects
             ])
-            slideFontSize = int( round( line_width / maxTextLen ) ) # Kinda makes sense?
+            slideFontSize = int( round( line_width / ( maxTextLen * 1.1 ) ) ) # Kinda makes sense?
 
+            '''
             for l in slide.lines:
                 for t in l.text_objects:
                     t.font_size = slideFontSize
@@ -204,9 +204,9 @@ class LyricsVideo():
                     t.font_size,
                     background = True
                 )
+            '''
 
             self.slides.append( slide )
-
 
 C = bpy.context
 S = C.scene
