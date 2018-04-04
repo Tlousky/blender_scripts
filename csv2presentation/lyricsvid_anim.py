@@ -50,16 +50,12 @@ class TextLine():
         # Text material and animation
         m                 = baseMat.copy()
         o.active_material = m
-
-        m.use_shadeless    = True
-        m.use_transparency = True
+        m.use_shadeless   = True
 
         # Insert alpha keyframes at start and end
-        for frm, val in zip( [ start, start + self.fadeInDuration ], [ 0, 1 ] ):
-            m.alpha = val
-            m.keyframe_insert( 'alpha', frame = frm )
-
-        #t.color = (0.5, 0.5, 0.5, 0.5) if background else (1,1,1,1)
+        for frm, val in zip( [ start, start + self.fadeInDuration ], [ 0.3, 0.8 ] ):
+            m.diffuse_color = [ val ] * 3
+            m.keyframe_insert( 'diffuse_color', frame = frm )
 
         return o
 
@@ -206,7 +202,7 @@ class LyricsVideo():
                         baseMat   = self.baseMat,
                         xInterval = line_width / 50,
                         y         = lineY,
-                        fontsize  = 0.65
+                        fontsize  = 0.5
                     )
 
                 slide.add_line( line )
@@ -216,28 +212,6 @@ class LyricsVideo():
                     ( o.location.x + o.dimensions.x ) for l in slide.lines for o in l.text_objects
             ])
             slideFontSize = int( round( line_width / ( maxTextLen * 1.1 ) ) ) # Kinda makes sense?
-
-            '''
-            for l in slide.lines:
-                for t in l.text_objects:
-                    t.font_size = slideFontSize
-
-            # Generate background text
-            for lidx, l in enumerate( slide.lines ):
-                t = l.text_objects[-1]
-
-                l.add_text(
-                    t.text,
-                    slide.frame_start if i != 0 else 1,
-                    slide.frame_end,
-                    t.location[0],
-                    t.location[1],
-                    seq,
-                    len( slide.lines ) + 3 + lidx,
-                    t.font_size,
-                    background = True
-                )
-            '''
 
             self.slides.append( slide )
 
@@ -250,8 +224,8 @@ vse = S.sequence_editor
 seq = vse.sequences
 
 lv = LyricsVideo(
-    audioFile      = r'C:\Users\TLOUSKY\Google Drive\Documents\Hellscore\Hellscore_songs\Afterlife\int + v1+ pc1 + c1 + v2 + pc2 + c2 + cpart + c3- Bariton.mp3',
-    markersFile    = r'C:\Users\TLOUSKY\Google Drive\Documents\Hellscore\Hellscore_songs\Afterlife\Afterlife_baritone_All.csv',
+    audioFile      = r'C:\Users\TLOUSKY\Google Drive\Hellscore\Therion\To Mega Therion\To Mega Therion A.mp3',
+    markersFile    = r'C:\Users\TLOUSKY\Google Drive\Documents\Therion\LyricsVidz\ToMegaTherion_A.csv',
     vseSequences   = seq,
     scn            = S,
     backgroundFile = r'C:\Users\TLOUSKY\Google Drive\Documents\Hellscore\Hellscore_songs\BG.jpg'
