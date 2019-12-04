@@ -1,5 +1,6 @@
 import bpy, bmesh
 import numpy as np
+from time import time
 from mathutils import Vector
 
 def generate_quad( original, quads, level, max_level ):
@@ -38,11 +39,13 @@ def generate_quad( original, quads, level, max_level ):
     return quads
 
 ## Main Code
+start = time()
+
 C = bpy.context
 D = bpy.data
 S = C.scene
 
-n     = 5  # Number of steps of the fractal
+n     = 10  # Number of steps of the fractal
 scale = 10 # Scale of the original tetrahedron
 
 # Generate regular tetrahedron at the desired scale
@@ -81,3 +84,6 @@ m.from_pydata( verts, [], faces )
 print({ k : len( quads[k] ) for k in quads })
 o = D.objects.new('base',m)
 S.collection.objects.link( o )
+
+elapsed = time() - start
+print( f'Took {elapsed} seconds for {n} levels' )
