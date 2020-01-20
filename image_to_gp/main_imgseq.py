@@ -12,27 +12,27 @@ from gp_utils import get_grease_pencil, get_grease_pencil_layer, init_grease_pen
 from cvfunctions import find_contours, find_contour_color
 
 # CONFIGURATION
-dirpath = '/Users/tlousk/Downloads/Bacteriophage_Freestyle'
-fp = '/Users/tlousk/Google Drive/Documents/Hellscore/bass_fish_clef.jpg'
+dirpath = '/Users/tlousk/Documents/test_images'
 
 nFrames      = 10
-cntLenThresh = 10
-mint, maxt   = 20, 225
-nlevels      = 4
+cntLenThresh = 5
+mint, maxt   = 5, 250
+nlevels      = 15
 stroke       = False
 fill         = True
+imgwidth     = 720
 
 start = time.time()
 
 d = Path( dirpath )
-imgs = sorted([ str( f.absolute() ) for f in d.glob('*.png') ])[:nFrames]
+imgs = sorted([ str( f.absolute() ) for f in d.glob('*.jpg') ])[:nFrames]
 
 gp_layer = init_grease_pencil()
 gp       = get_grease_pencil()
 
 pbar = tqdm( imgs, ncols = 100 )
 for i, fp in enumerate( pbar ):
-    im, contours = find_contours( fp, cntLenThresh, nlevels, mint, maxt )
+    im, contours = find_contours( fp, cntLenThresh, nlevels, mint, maxt, imgwidth )
 
     # DRAW GP CURVES BASED ON CONTOURS IN CURRENT FRAME
     gp_frame = gp_layer.frames.new(i)
@@ -64,4 +64,4 @@ for i, fp in enumerate( pbar ):
 
 total_time = time.time() - start
 timefor    = str(datetime.timedelta(seconds=total_time ))
-print( f"Elapsed: {timefor} with {nlevels} levels and {len(contours)} contours" )
+print( f"Elapsed: {timefor} with {nlevels} levels" )
