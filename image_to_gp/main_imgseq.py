@@ -9,15 +9,17 @@ SRC = '/Users/tlousk/Documents/code/blender_scripts/image_to_gp'
 sys.path.append( SRC )
 
 from gp_utils import get_grease_pencil, get_grease_pencil_layer, init_grease_pencil, draw_contour
-from cvfunctions import find_contours, find_contour_color
+from cvfunctions import find_contours_canny, find_contour_color
 
 # CONFIGURATION
-dirpath = '/Users/tlousk/Documents/test_images'
+#dirpath = '/Users/tlousk/Documents/test_images'
+dirpath = '/Users/tlousk/Downloads/Bacteriophage_Freestyle'
 
-nFrames      = 10
+
+nFrames      = 121
 cntLenThresh = 5
-mint, maxt   = 5, 250
-nlevels      = 15
+mint, maxt   = 50, 220
+nlevels      = 12
 stroke       = False
 fill         = True
 imgwidth     = 720
@@ -25,14 +27,14 @@ imgwidth     = 720
 start = time.time()
 
 d = Path( dirpath )
-imgs = sorted([ str( f.absolute() ) for f in d.glob('*.jpg') ])[:nFrames]
+imgs = sorted([ str( f.absolute() ) for f in d.glob('*.png') ])[:nFrames]
 
 gp_layer = init_grease_pencil()
 gp       = get_grease_pencil()
 
 pbar = tqdm( imgs, ncols = 100 )
 for i, fp in enumerate( pbar ):
-    im, contours = find_contours( fp, cntLenThresh, nlevels, mint, maxt, imgwidth )
+    im, contours = find_contours_canny( fp, nlevels = nlevels, resize_to = imgwidth )
 
     # DRAW GP CURVES BASED ON CONTOURS IN CURRENT FRAME
     gp_frame = gp_layer.frames.new(i)
@@ -42,6 +44,9 @@ for i, fp in enumerate( pbar ):
 
     cntcolors = []
     for i, cnt in enumerate(contours):
+        # Change y coords from y-down to y-up
+        h = im.shape[0]
+        #cnt[:,0,1] = h - cnt[:,0,1] 
 
         # Create new material
         m = bpy.data.materials.new(f"gpmat_{str(i).zfill(3)}")

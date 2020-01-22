@@ -1,14 +1,28 @@
+import cv2
 import numpy as np
 import bpy
 
-def draw_contour(gp_frame, cnt: np.array, material_index: int):
+def draw_contour(gp_frame, cnt: np.array, material_index: int, approx_poly = False):
     # Init new stroke
     gp_stroke              = gp_frame.strokes.new()
     gp_stroke.display_mode = '3DSPACE'  # allows for editing
 
     # Define stroke geometry
     gp_stroke.points.add( count=len(cnt) )
+
+    if approx_poly:
+        peri = cv2.arcLength(cnt, True)
+        poly = cv2.approxPolyDP(cnt, 0.0005 * peri, True)
+
+        x  = poly[:,0,0]
+        y  = poly[:,0,1]
+        x = np.append( x, np.array([ x[0] ]) )
+        y = np.append( y, np.array([ y[0] ]) )        
+
+        cnt = np.array([ np.column_stack((x,y)) ])
+
     for i, cntco in enumerate( cnt ):
+                
         co = ( cntco[0][0], 0, cntco[0][1] )
         gp_stroke.points[i].co = co
 
