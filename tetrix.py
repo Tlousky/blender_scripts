@@ -45,7 +45,7 @@ C = bpy.context
 D = bpy.data
 S = C.scene
 
-n     = 10  # Number of steps of the fractal
+n     = 4  # Number of steps of the fractal
 scale = 10 # Scale of the original tetrahedron
 
 # Generate regular tetrahedron at the desired scale

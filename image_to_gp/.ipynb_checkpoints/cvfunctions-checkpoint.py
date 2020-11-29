@@ -24,35 +24,30 @@ def find_contours( filepath, contour_len_thresh = 3, nlevels = 10, min_val = 20,
         new_size = tuple([ int(round(v / ratio)) for v in [ im.shape[1], im.shape[0] ] ])
         scaled   = cv2.resize(im, new_size )
 
-    #dst = cv2.edgePreservingFilter(scaled, sigma_s=20, sigma_r=0.95)
-    dst    = im   
+    dst = cv2.edgePreservingFilter(scaled, sigma_s=20, sigma_r=0.95)
+        
     imgray = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
-    blur   = cv2.GaussianBlur(imgray, (3,3), 0)
+    blur   = cv2.GaussianBlur(imgray, (9,9), 0)
 
     # FIND CONTOURS
     contours_all = []
     layers_all   = []
-    if nlevels > 2:
-        threshvals = np.linspace( min_val, max_val, num = nlevels, dtype = np.int )
-    else:
-        threshvals = [ np.mean([min_val, max_val]) ]
-
-    kernel = np.ones((3,3),np.uint8)
+    threshvals = np.linspace( min_val, max_val, num = nlevels, dtype = np.int )
     for t in threshvals:
-        canny = cv2.Canny( imgray, t, min(250, t+100) )
-        ret, thresh = cv2.threshold(canny, t, 255, 0)
-        thresh = cv2.GaussianBlur(thresh, (1,1), 0)
-        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+        ret, thresh = cv2.threshold(blur, t, 255, 0)
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contours_all.extend(contours)
-        #order = [ v for i in sorted(set(hierarchy[0,:,3])) for v in np.where(hierarchy[0,:,3] == i)[0]  ]
-        #layers = (hierarchy[0,:,3]+1) + (hierarchy[0,:,0]+1)
-        #contours_all.extend([ contours[i] for i in order ])
-        #layers_all.extend(layers)
+        order = [ v for i in sorted(set(hierarchy[0,:,3])) for v in np.where(hierarchy[0,:,3] == i)[0]  ]
+        layers = (hierarchy[0,:,3]+1) + (hierarchy[0,:,0]+1)
+        contours_all.extend([ contours[i] for i in order ])
+        layers_all.extend(layers)
 
     if not len( contours_all ):
         raise NoContoursFound(f'Failed to find contours in image file [{filepath}]')
 
+    #merged        = list( zip(contours_all, layers_all))
+    #merged_sorted = sorted( merged, key = lambda m: m[1], reverse = False ) 
+    #contours_all  = [ m[0] for m in merged_sorted ]
+    #contours_all  = 
     fcnt = [ c for c in contours_all if len(c) > contour_len_thresh ]
     
     if not len( contours_all ):
@@ -122,51 +117,24 @@ def find_contours_canny( filepath, contour_len_thresh = 5, nlevels = 10, min_val
     return blur_bgr, contours
 
 
-def contour_inner_rect(cnt, return_inner = True):
+def contour_inner_rect(cnt):
     rect = cv2.minAreaRect(cnt) # Calculate the minimum area rectangle and get it's tilt angle
     box  = cv2.boxPoints(rect)
     box  = np.int0(box)
 
     inner_x = np.array(sorted(box[:,0])[1:3])
-    inner_y = np.array(sorted(box[:,1])[1:3]) 
+    inner_y = np.array(sorted(box[:,1])[1:3])
 
     inner = np.column_stack((inner_x, inner_y))
-
-    if not return_inner:
-        outer_x = np.array([ box[:,0].min(), box[:,0].max() ])
-        outer_y = np.array([ box[:,1].min(), box[:,1].max() ])
-        outer   = np.column_stack((outer_x, outer_y))
-    return outer
-        
+    
     return inner
 
 
-def find_contour_color(im, cnt, default_color = (0,0,0,1), colortype = 'mean' ):
+def find_contour_color(im, cnt, default_color = (0,0,0,1) ):
     if not len(cnt):
         return default_color
     
-    inner      = contour_inner_rect(cnt, return_inner = False)
-    inner_im   = im[ inner[0,1]:inner[1,1], inner[0,0]:inner[1,0], ::-1 ]
-    mean_rgb   = inner_im.mean(axis=0).mean(axis=0) / 255
-    median_rgb = np.median(
-        np.median( inner_im, axis = 0 ),
-        axis = 0 
-    ) / 255
+    inner = contour_inner_rect(cnt)
+    mean_rgb = blur_bgr[ inner[0,1]:inner[1,1], inner[0,0]:inner[1,0] ].mean(axis=0).mean(axis=0)[::-1] / 255
     
-    rgb = mean_rgb
-    if colortype == 'median':
-        rgb = median_rgb
-        
-    if colortype == 'mode':
-        flat_rgb    = inner_im.reshape( ( inner_im.shape[0] * inner_im.shape[1], 3) )
-        totup       = [ tuple(v / 255) for v in flat_rgb ]
-        mode_color  = pd.Series( totup ).value_counts( normalize = True )
-        if len( mode_color ):
-            color = mode_color.index[0]
-            p     = mode_color.values[0]
-            
-            # Use mode color if it is above thresh p
-            if p > 0.05:
-                rgb = mode_color.index[0]
-    
-    return rgb
+    return mean_rgb
