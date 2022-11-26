@@ -54,7 +54,7 @@ def create_mesh_obj( name, data ):
     o.location  = ( 0, 0, 0 )
 
     # Link object to scene
-    bpy.context.scene.objects.link( o )
+    bpy.context.scene.collection.objects.link( o )
 
     # Create mesh from given verts, edges, faces. Either edges or
     # faces should be [], or you ask for problems
@@ -72,8 +72,8 @@ def create_snowflake( o, iterations = 2 ):
     turn_around_matrix = Matrix.Rotation( radians(180), 3, 'Z' )
 
     # Select object and set it as active object
-    o.select = True
-    bpy.context.scene.objects.active = o
+    o.select_set(True)
+    bpy.context.view_layer.objects.active = o
 
     # Ensure we're in edit mode and in vertex selection mode
     if o.mode != 'EDIT': bpy.ops.object.mode_set(mode = 'EDIT')
@@ -165,7 +165,7 @@ def create_snowflake( o, iterations = 2 ):
             vdiff = bv[ other_verts[1] ].co - bv[ other_verts[0] ].co
             vdiff[0] *=  sqrt(3)/2.0
             vdiff[1] *=  sqrt(3)/2.0
-            vrot  = vdiff * rot_matrix
+            vrot  = vdiff @ rot_matrix
 
             new_pos = bv[ joint_vert ].co + vrot
 
@@ -186,7 +186,7 @@ class add_snowflake( bpy.types.Operator ):
     bl_label   = "Add Snowflake"
     bl_options = {'REGISTER', 'UNDO', 'PRESET'}
 
-    iterations = bpy.props.IntProperty(
+    iterations : bpy.props.IntProperty(
         name        = "Iterations",
         description = "Number of fractal iterations",
         min         = 0,
@@ -194,7 +194,7 @@ class add_snowflake( bpy.types.Operator ):
         default     = 2
     )
 
-    sides = bpy.props.IntProperty(
+    sides : bpy.props.IntProperty(
         name        = "Number of sides",
         description = "The number of sides of the initial polygon",
         min         = 3,
@@ -202,7 +202,7 @@ class add_snowflake( bpy.types.Operator ):
         default     = 6
     )
 
-    radius = bpy.props.FloatProperty(
+    radius : bpy.props.FloatProperty(
         name        = "Radius",
         description = "Radius of the snowflake",
         min         = 0.1,
@@ -241,16 +241,17 @@ def menu_func( self, context ):
     )
 
 def register():
-    bpy.utils.register_module(__name__)
+    bpy.utils.register_class(add_snowflake)
 
     # Add "Snowflake" menu to the "Add Mesh" menu
-    bpy.types.INFO_MT_mesh_add.append( menu_func )
+    bpy.types.TOPBAR_MT_file_export.append( menu_func )
+  
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    bpy.utils.unregister_class(add_snowflake)
 
     # Remove "Snowflake" menu from the "Add Mesh" menu.
-    bpy.types.INFO_MT_mesh_add.remove( menu_func )
+    bpy.types.TOPBAR_MT_file_export.remove( menu_func )
 
 if __name__ == "__main__":
     register()
