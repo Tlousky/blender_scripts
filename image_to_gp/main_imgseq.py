@@ -19,7 +19,7 @@ dirpath = '/Users/tlousk/Downloads/Bacteriophage_Freestyle'
 nFrames      = 121
 cntLenThresh = 5
 mint, maxt   = 50, 220
-nlevels      = 12
+nlevels      = 6
 stroke       = False
 fill         = True
 imgwidth     = 720
@@ -34,7 +34,7 @@ gp       = get_grease_pencil()
 
 pbar = tqdm( imgs, ncols = 100 )
 for i, fp in enumerate( pbar ):
-    im, contours = find_contours_canny( fp, nlevels = nlevels, resize_to = imgwidth )
+    im, contours = find_contours_canny( fp, nlevels = nlevels, resize_to = None )
 
     # DRAW GP CURVES BASED ON CONTOURS IN CURRENT FRAME
     gp_frame = gp_layer.frames.new(i)
