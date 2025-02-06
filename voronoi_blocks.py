@@ -31,19 +31,26 @@ coos = -10 + np.random.random((200,2)) * 20
 vor = Voronoi(coos)
 voronoi_to_mesh( vor )
 
-add_height = False
-if add_height:
-     vorobjs = [ o for o in C.collection.objects if 'Vor' in o.name ]
-     for o in vorobjs:
-         bm = bmesh.new()
-         bm.from_mesh(o.data)
+add_height    = True
+add_wireframe = False
+
+vorobjs = [ o for o in C.collection.objects if 'Vor' in o.name ]
+for o in vorobjs:
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+     
+    bm.faces.ensure_lookup_table()
+    f = bm.faces[0]
+    if f.normal.z > 0:
+        f.normal_flip()
          
-         bm.faces.ensure_lookup_table()
-         f = bm.faces[0]
-         if f.normal.z > 0:
-             f.normal_flip()
-             
-         bm.to_mesh(o.data)
-         
-         m = o.modifiers.new('Solidify', 'SOLIDIFY')
-         m.thickness = np.random.random() * 10
+    bm.to_mesh(o.data)
+     
+    if add_height:
+        m = o.modifiers.new('Solidify', 'SOLIDIFY')
+        m.thickness = np.random.random() * 10
+     
+    if add_wireframe:
+        m = o.modifiers.new('Wireframe', 'WIREFRAME')
+        m.thickness = 0.3
+        m.offset    = -1

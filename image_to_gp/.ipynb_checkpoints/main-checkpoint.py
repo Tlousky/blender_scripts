@@ -8,12 +8,12 @@ SRC = '/Users/tlousk/Documents/code/blender_scripts/image_to_gp'
 sys.path.append( SRC )
 
 from gp_utils import get_grease_pencil, get_grease_pencil_layer, init_grease_pencil, draw_contour
-from cvfunctions import find_contours_canny, find_contour_color, find_contours
+from cvfunctions import find_contours_canny, find_contour_color
 
 # CONFIGURATION
 fp = '/Users/tlousk/Documents/test_images/character/anime_char.png'
 
-nlevels      = 6
+nlevels      = 7
 imgwidth     = 720
 fill         = True
 stroke       = True
@@ -26,7 +26,7 @@ def main(fp):
     gp       = get_grease_pencil()
 
     im, contours = find_contours_canny( fp, nlevels = nlevels, resize_to = None )
-    #im, contours = find_contours( fp, nlevels = nlevels, resize_to = None )
+    #im, contours = find_contours( fp, nlevels = nlevels, resize_to = imgwidth )
 
     # DRAW GP CURVES BASED ON CONTOURS IN CURRENT FRAME
     gp_frame = gp_layer.frames.new(1)
@@ -47,7 +47,7 @@ def main(fp):
         m.grease_pencil.show_stroke = stroke
 
         if fill:
-            color = find_contour_color( im, cnt, colortype = 'mode' )
+            color = find_contour_color( im, cnt )
             m.grease_pencil.fill_color = tuple( list(color) + [1] )
 
         # Add new material slot and set material
@@ -56,7 +56,7 @@ def main(fp):
         gp.material_slots[material_index].material = m    
 
         # Draw contour as GP stroke
-        gp_stroke = draw_contour( gp_frame, cnt, material_index, approx_poly = False )
+        gp_stroke = draw_contour(gp_frame, cnt, material_index )
 
     # Scale GP object
     scale = scale_to / h
