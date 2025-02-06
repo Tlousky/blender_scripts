@@ -35,7 +35,7 @@ def find_contours( filepath, contour_len_thresh = 3, nlevels = 10, min_val = 20,
     threshvals = np.linspace( min_val, max_val, num = nlevels, dtype = np.int )
     for t in threshvals:
         ret, thresh = cv2.threshold(blur, t, 255, 0)
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         order = [ v for i in sorted(set(hierarchy[0,:,3])) for v in np.where(hierarchy[0,:,3] == i)[0]  ]
         layers = (hierarchy[0,:,3]+1) + (hierarchy[0,:,0]+1)
         contours_all.extend([ contours[i] for i in order ])
@@ -77,20 +77,24 @@ def find_contours_canny( filepath, contour_len_thresh = 5, nlevels = 10, min_val
     if not isfile( filepath ):
         raise FileExistsError(f'Image file [{filepath}] does not exist')
 
-    im = cv2.imread(filepath)
+    im = cv2.imread(filepath, flags=cv2.IMREAD_UNCHANGED)
+    if im.shape[-1] == 4:
+        imbgr = cv2.cvtColor(im, cv2.COLOR_BGRA2BGR)
+    else:
+        imbgr = im.copy()
     
-    scaled = im
+    scaled = imbgr
     if resize_to is not None:
         h, w, c  = im.shape
         ratio    = w / resize_to
-        new_size = tuple([ int(round(v / ratio)) for v in [ im.shape[1], im.shape[0] ] ])
-        scaled   = cv2.resize(im, new_size )
+        new_size = tuple([ int(round(v / ratio)) for v in [ imbgr.shape[1], imbgr.shape[0] ] ])
+        scaled   = cv2.resize(imbgr, new_size )
 
     # Filter to generate color regions
     blur_bgr = cv2.edgePreservingFilter(scaled, sigma_s=20, sigma_r=0.95)
     # blur_bgr = cv2.stylization(im, sigma_s=20, sigma_r=0.95)
 
-    imgray = cv2.cvtColor(blur_bgr, cv2.COLOR_BGR2GRAY)
+    imgray = cv2.cvtColor(blur_bgr, cv2.COLOR_BGRA2GRAY)
 
     kernel     = np.ones((3,3),np.uint8)
     threshvals = np.linspace( min_val, max_val, num = nlevels, dtype = np.int )
@@ -109,12 +113,28 @@ def find_contours_canny( filepath, contour_len_thresh = 5, nlevels = 10, min_val
     layered = cv2.morphologyEx(layered, cv2.MORPH_OPEN, kernel)
     layered = cv2.morphologyEx(layered, cv2.MORPH_CLOSE, kernel)
     
-    contours, hierarchy = cv2.findContours(layered, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, hierarchy = cv2.findContours(layered, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
     if not len( contours ):
         raise NoContoursFound(f'Failed to find contours in image file [{filepath}]')
         
-    return blur_bgr, contours
+    return im, contours
+
+
+def find_contours_simple( filepath ):
+    im = cv2.imread(filepath, flags=cv2.IMREAD_UNCHANGED)
+    if im.shape[-1] == 4:
+        imbgr = cv2.cvtColor(im, cv2.COLOR_BGRA2BGR)
+    else:
+        imbgr = im.copy()
+
+    imgray = cv2.cvtColor(imbgr, cv2.COLOR_BGRA2GRAY)    
+    _, contours, hierarchy = cv2.findContours(imgray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if not len( contours ):
+        raise NoContoursFound(f'Failed to find contours in image file [{filepath}]')
+        
+    return im, contours
 
 
 def contour_inner_rect(cnt):
@@ -134,7 +154,15 @@ def find_contour_color(im, cnt, default_color = (0,0,0,1) ):
     if not len(cnt):
         return default_color
     
+    # Create a mask image that contains the contour filled in
+    cimg = np.zeros_like(im)
+    cv2.drawContours(cimg, [contours[0]], 0, color=255, thickness=-1)
+
+    # Access the image pixels and create a 1D numpy array then add to list
+    pts = np.where(cimg == 255)
+    contour_pixels = im[pts[0], pts[1]]
+   
     inner = contour_inner_rect(cnt)
-    mean_rgb = im[ inner[0,1]:inner[1,1], inner[0,0]:inner[1,0] ].mean(axis=0).mean(axis=0)[::-1] / 255
+    mean_rgb = contour_pixels.mean(axis=0).mean(axis=0)[::-1] / 255
     
     return mean_rgb
